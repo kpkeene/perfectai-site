@@ -47,7 +47,7 @@ header.top .wrap{display:flex;align-items:center;justify-content:space-between;h
 .mark i{display:inline-block;width:14px;height:14px;background:var(--signal);transform:rotate(45deg)}
 nav a{font-family:"Archivo",sans-serif;font-size:.95rem;text-decoration:none;margin-left:22px;color:var(--steel)}
 nav a:hover{color:var(--ink)}
-@media (max-width:640px){nav a:not(.cta-link){display:none}}
+@media (max-width:640px){nav a:not(.cta-link){display:none}nav a{margin-left:14px;font-size:.85rem}}
 
 /* hero */
 .hero{padding:72px 0 56px}
@@ -71,6 +71,24 @@ nav a:hover{color:var(--ink)}
 /* sections */
 section{padding:72px 0;border-top:1px solid var(--line)}
 .intro{color:var(--steel);max-width:60ch;margin-bottom:40px}
+
+/* working demos */
+.eyebrow{font-family:"Archivo",sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--steel);margin-bottom:14px}
+.demo-grid{display:grid;gap:24px}
+@media (min-width:760px){.demo-grid{grid-template-columns:1fr 1fr}}
+.demo-card{display:flex;flex-direction:column;padding:28px;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--ink);min-width:0}
+.demo-card.public{border-top-color:var(--signal)}
+.demo-card h3{font-size:1.65rem;margin:18px 0 12px}
+.demo-card ul{padding-left:20px;margin:0 0 20px;font-size:.98rem}
+.demo-card li{margin-bottom:7px}
+.demo-badge{align-self:flex-start;font-family:"Archivo",sans-serif;font-size:.75rem;font-weight:700;padding:6px 10px;border:1px solid var(--line);color:var(--steel)}
+.public .demo-badge{background:var(--signal);border-color:var(--signal);color:#16242E}
+.demo-actions{margin-top:auto}
+.demo-actions .btn{margin-right:0}
+.demo-note{font-family:"Archivo",sans-serif;font-size:.82rem;color:var(--steel);margin:12px 0 0}
+.demo-guide{display:inline-block;margin-top:14px;font-family:"Archivo",sans-serif;font-size:.9rem;text-underline-offset:4px}
+.demo-workflow{display:flex;flex-wrap:wrap;gap:10px 22px;padding:18px 0 0;margin:24px 0 0;border-top:1px solid var(--line);list-style:none;font-family:"Archivo",sans-serif;font-size:.85rem;color:var(--steel)}
+.demo-workflow b{color:var(--ink)}
 
 /* use cases: grouped by domain, a domain column then its cases */
 .domain{display:grid;gap:24px;padding:32px 0;border-top:1px solid var(--line)}
@@ -115,6 +133,7 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
   <div class="wrap">
     <a class="mark" href="#top" aria-label="PerfectAI home"><i aria-hidden="true"></i>PerfectAI</a>
     <nav aria-label="Main">
+      <a class="cta-link" href="#demos">Demos</a>
       <a href="#use-cases">Use cases</a>
       <a href="#approach">Approach</a>
       <a class="cta-link" href="#contact">Contact</a>
@@ -129,6 +148,7 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
         <h1>AI that ships to the job site, not just the demo.</h1>
         <p class="lede">PerfectAI provides forward deployed engineers who sit with your planners, buyers, and site teams, connect AI to the systems you already run, and stay until it's used every day.</p>
         <a class="btn" href="#use-cases">See the use cases</a>
+        <a class="btn ghost" href="#demos">Explore live demos</a>
         <a class="btn ghost" href="mailto:kumaran@perfectai.tech">Email us</a>
       </div>
 
@@ -147,6 +167,52 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
       </figure>
     </div>
   </div>
+
+  <section id="demos" aria-labelledby="demos-title">
+    <div class="wrap">
+      <p class="eyebrow">Working demos · fictional data</p>
+      <h2 id="demos-title">Explore LineageFlow</h2>
+      <p class="intro">See how a salesperson's customer visit becomes a replenishment plan. Explore relationships in 3D, edit shelf counts, and trace the numbers behind demand and supply decisions in two implementations.</p>
+      <div class="demo-grid">
+        <article class="demo-card public" aria-labelledby="azure-demo-title">
+          <span class="demo-badge">Public demo · No login needed</span>
+          <h3 id="azure-demo-title">Azure version</h3>
+          <p>Open the interactive React demo immediately and try the customer visit workflow for yourself.</p>
+          <ul>
+            <li>Explore salespeople, customers, and products in a 3D ontology.</li>
+            <li>Edit shelf counts and refill levels, then record a demo visit.</li>
+            <li>Compare forecast scenarios and ask the planning agent for an explanation.</li>
+          </ul>
+          <div class="demo-actions">
+            <a class="btn" href="https://ambitious-rock-00a160e10.2.azurestaticapps.net" target="_blank" rel="noopener noreferrer">Open Azure demo ↗</a>
+            <p class="demo-note">Best for sharing with friends. Opens in a new tab.</p>
+            <a class="demo-guide" href="https://ambitious-rock-00a160e10.2.azurestaticapps.net/LineageFlow-Demo-Guide.pdf" target="_blank" rel="noopener noreferrer">Read the demo guide (PDF) ↗</a>
+          </div>
+        </article>
+        <article class="demo-card" aria-labelledby="palantir-demo-title">
+          <span class="demo-badge">Palantir login + app access required</span>
+          <h3 id="palantir-demo-title">Palantir version</h3>
+          <p>Explore the same use case implemented in Foundry, with ontology-backed records and an AIP planning assistant.</p>
+          <ul>
+            <li>Navigate a 3D view of customer, product, visit, and delivery relationships.</li>
+            <li>Save shelf edits and replenishment visits through ontology actions.</li>
+            <li>Trace forecast calculations and get explanations from the AIP assistant.</li>
+          </ul>
+          <div class="demo-actions">
+            <a class="btn ghost" href="https://lineageflow-x6esw3b2xudrht5p.apps.usw-22.palantirfoundry.com" target="_blank" rel="noopener noreferrer">Open Palantir demo ↗</a>
+            <p class="demo-note">Requires an authorized account in our Palantir environment. The trial does not support anonymous access; use the Azure demo for a public walkthrough.</p>
+          </div>
+        </article>
+      </div>
+      <ol class="demo-workflow" aria-label="Suggested demo walkthrough">
+        <li><b>01</b> Choose a customer</li>
+        <li><b>02</b> Update shelf counts</li>
+        <li><b>03</b> Review the suggested refill</li>
+        <li><b>04</b> Explore the 3D relationships</li>
+      </ol>
+      <p class="demo-note">Both versions use fictional records and illustrative forecasts. Demo visits do not place real orders. Each version maintains its own demo state.</p>
+    </div>
+  </section>
 
   <section id="use-cases">
     <div class="wrap">
@@ -278,6 +344,7 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
 <footer>
   <div class="wrap">
     <span>© 2026 PerfectAI</span>
+    <a href="https://github.com/kpkeene/perfectai-site" target="_blank" rel="noopener noreferrer">Website source on GitHub ↗</a>
     <a class="mail" href="mailto:kumaran@perfectai.tech">kumaran@perfectai.tech</a>
   </div>
 </footer>
