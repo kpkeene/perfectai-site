@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PerfectAI — AI forward deployed engineering</title>
+<meta name="description" content="PerfectAI embeds forward deployed engineers with your teams to put AI into production across supply chain, EPC, and industrial operations.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16242E;      /* deep slate */
+  --paper:#EEF1F3;    /* cool site-office paper */
+  --steel:#5B7083;    /* secondary text */
+  --line:#C6D0D7;     /* rules and outlines */
+  --signal:#F2B705;   /* safety yellow, used sparingly */
+  --panel:#FFFFFF;
+  --maxw:1120px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#E6ECEF; --paper:#121C23; --steel:#93A6B5; --line:#2B3A45; --panel:#17232C;
+  }
+}
+:root[data-theme="dark"]{--ink:#E6ECEF; --paper:#121C23; --steel:#93A6B5; --line:#2B3A45; --panel:#17232C;}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Serif 4",Georgia,serif;font-size:1.0625rem;line-height:1.65}
+a{color:inherit}
+a:focus-visible,button:focus-visible{outline:3px solid var(--signal);outline-offset:3px}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 16px}
+@media (min-width:720px){.wrap{padding:0 32px}}
+
+h1,h2,h3,.sans{font-family:"Archivo",system-ui,sans-serif}
+h1{font-variation-settings:"wdth" 112;font-weight:780;font-size:clamp(2.4rem,6.4vw,4.6rem);line-height:1.02;letter-spacing:-0.02em;margin:0 0 24px;max-width:15ch}
+h2{font-variation-settings:"wdth" 108;font-weight:720;font-size:clamp(1.7rem,3.6vw,2.4rem);line-height:1.1;letter-spacing:-0.01em;margin:0 0 12px}
+h3{font-weight:680;font-size:1.15rem;line-height:1.3;margin:0 0 8px}
+p{margin:0 0 16px;max-width:66ch}
+
+/* header */
+header.top{border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;height:68px;gap:16px}
+.mark{font-family:"Archivo",sans-serif;font-variation-settings:"wdth" 125;font-weight:800;font-size:1.25rem;text-decoration:none;letter-spacing:-0.01em;display:flex;align-items:center;gap:10px}
+.mark i{display:inline-block;width:14px;height:14px;background:var(--signal);transform:rotate(45deg)}
+nav a{font-family:"Archivo",sans-serif;font-size:.95rem;text-decoration:none;margin-left:22px;color:var(--steel)}
+nav a:hover{color:var(--ink)}
+@media (max-width:640px){nav a:not(.cta-link){display:none}}
+
+/* hero */
+.hero{padding:72px 0 56px}
+.hero-grid{display:grid;gap:48px}
+@media (min-width:960px){.hero-grid{grid-template-columns:1.05fr .95fr;align-items:center}}
+.lede{font-size:1.2rem;color:var(--steel);max-width:52ch}
+.btn{display:inline-block;font-family:"Archivo",sans-serif;font-weight:650;text-decoration:none;padding:14px 22px;border:2px solid var(--ink);background:var(--ink);color:var(--paper);margin:8px 12px 0 0}
+.btn.ghost{background:transparent;color:var(--ink)}
+
+/* the route diagram: the one bold element */
+.route{background:var(--panel);border:1px solid var(--line);padding:20px}
+.route svg{width:100%;height:auto;display:block}
+.route figcaption{font-family:"Archivo",sans-serif;font-size:.85rem;color:var(--steel);margin-top:12px}
+.r-node rect{fill:var(--paper);stroke:var(--ink);stroke-width:1.5}
+.r-node text{font-family:"Archivo",sans-serif;font-size:13px;fill:var(--ink)}
+.r-node .sub{font-size:11px;fill:var(--steel)}
+.r-path{fill:none;stroke:var(--line);stroke-width:3}
+.r-live{fill:none;stroke:var(--signal);stroke-width:3;stroke-dasharray:14 400;animation:run 3.2s linear 1s 2 both}
+@keyframes run{from{stroke-dashoffset:414}to{stroke-dashoffset:0}}
+
+/* sections */
+section{padding:72px 0;border-top:1px solid var(--line)}
+.intro{color:var(--steel);max-width:60ch;margin-bottom:40px}
+
+/* use cases: grouped by domain, a domain column then its cases */
+.domain{display:grid;gap:24px;padding:32px 0;border-top:1px solid var(--line)}
+.domain:first-of-type{border-top:0;padding-top:0}
+@media (min-width:880px){.domain{grid-template-columns:240px 1fr;gap:40px}}
+.domain-name h3{font-variation-settings:"wdth" 110;font-size:1.35rem}
+.domain-name p{color:var(--steel);font-size:.95rem}
+.cases{display:grid;gap:16px}
+@media (min-width:720px){.cases{grid-template-columns:1fr 1fr}}
+.case{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--ink);padding:20px 22px}
+.case p{font-size:.98rem;margin-bottom:10px}
+.case .sys{font-family:"Archivo",sans-serif;font-size:.82rem;color:var(--steel);margin:0}
+.case .sys b{font-weight:650;color:var(--ink)}
+
+/* approach: a real sequence, so numbered */
+.steps{list-style:none;padding:0;margin:0;display:grid;gap:0;counter-reset:s}
+@media (min-width:880px){.steps{grid-template-columns:repeat(4,1fr)}}
+.steps li{counter-increment:s;padding:24px 20px 24px 0;border-top:3px solid var(--ink)}
+@media (min-width:880px){.steps li{padding-right:28px}}
+.steps li::before{content:"Step " counter(s);display:block;font-family:"Archivo",sans-serif;font-weight:650;font-size:.85rem;color:var(--steel);margin-bottom:8px}
+.steps p{font-size:.98rem}
+
+/* principles */
+.principles{display:grid;gap:28px}
+@media (min-width:720px){.principles{grid-template-columns:repeat(3,1fr)}}
+.principles p{font-size:.98rem;color:var(--steel)}
+
+/* contact */
+.contact{background:var(--ink);color:var(--paper);border-top:0}
+.contact h2{max-width:20ch}
+.contact p{color:color-mix(in srgb,var(--paper) 78%,transparent)}
+.contact .btn{background:var(--signal);border-color:var(--signal);color:#16242E}
+.mail{font-family:"Archivo",sans-serif;font-size:1.1rem}
+
+footer{padding:28px 0;font-family:"Archivo",sans-serif;font-size:.85rem;color:var(--steel)}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="mark" href="#top" aria-label="PerfectAI home"><i aria-hidden="true"></i>PerfectAI</a>
+    <nav aria-label="Main">
+      <a href="#use-cases">Use cases</a>
+      <a href="#approach">Approach</a>
+      <a class="cta-link" href="#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <h1>AI that ships to the job site, not just the demo.</h1>
+        <p class="lede">PerfectAI provides forward deployed engineers who sit with your planners, buyers, and site teams, connect AI to the systems you already run, and stay until it's used every day.</p>
+        <a class="btn" href="#use-cases">See the use cases</a>
+        <a class="btn ghost" href="mailto:kumaran@perfectai.tech">Email us</a>
+      </div>
+
+      <figure class="route" style="margin:0">
+        <svg viewBox="0 0 420 300" role="img" aria-labelledby="routeTitle">
+          <title id="routeTitle">How a forward deployed engagement connects source systems to a decision in the field</title>
+          <path class="r-path" d="M110 50 H210 V150 H310 V250"/>
+          <path class="r-live" d="M110 50 H210 V150 H310 V250"/>
+          <g class="r-node"><rect x="10" y="22" width="150" height="56"/><text x="24" y="46">Source systems</text><text class="sub" x="24" y="64">ERP, P6, sensors, docs</text></g>
+          <g class="r-node"><rect x="135" y="122" width="150" height="56"/><text x="149" y="146">Shared data model</text><text class="sub" x="149" y="164">Objects your teams name</text></g>
+          <g class="r-node"><rect x="245" y="222" width="165" height="56"/><text x="259" y="246">Decision in the field</text><text class="sub" x="259" y="264">People approve actions</text></g>
+          <g class="r-node"><rect x="260" y="22" width="150" height="56" style="stroke-dasharray:4 4"/><text x="274" y="46">AI agents + tools</text><text class="sub" x="274" y="64">Scoped to user access</text></g>
+          <path d="M335 78 V122 H285" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="4 4"/>
+        </svg>
+        <figcaption>Every engagement follows the same route: real data, a shared model of the operation, and an agent whose actions a person signs off.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <section id="use-cases">
+    <div class="wrap">
+      <h2>Where forward deployed AI pays off</h2>
+      <p class="intro">These are the problems we're built for: high-cost decisions, data spread across old and new systems, and teams who need an answer during the shift, not after the monthly review.</p>
+
+      <div class="domain">
+        <div class="domain-name">
+          <h3>Supply chain and procurement</h3>
+          <p>Long-lead materials, many suppliers, and changes that ripple across projects.</p>
+        </div>
+        <div class="cases">
+          <article class="case">
+            <h3>Material delivery risk</h3>
+            <p>Flag purchase orders likely to land late by comparing promised dates with supplier history, shipping status, and site need dates.</p>
+            <p class="sys"><b>Connects:</b> ERP purchasing, logistics feeds, project schedules</p>
+          </article>
+          <article class="case">
+            <h3>Supplier rerouting</h3>
+            <p>When a supplier slips, an agent proposes alternate sources or stock transfers between projects, with the cost and schedule trade-off spelled out for the buyer.</p>
+            <p class="sys"><b>Connects:</b> Approved vendor lists, inventory, contract terms</p>
+          </article>
+          <article class="case">
+            <h3>Demand and redistribution planning</h3>
+            <p>Forecast material demand per project and move surplus to where it's needed before anyone places a new order.</p>
+            <p class="sys"><b>Connects:</b> Consumption history, project phases, warehouse stock</p>
+          </article>
+          <article class="case">
+            <h3>Procurement document intelligence</h3>
+            <p>Read quotes, specs, and change orders, pull out the terms that matter, and check them against the contract before approval.</p>
+            <p class="sys"><b>Connects:</b> Document stores, contract records, approval workflows</p>
+          </article>
+        </div>
+      </div>
+
+      <div class="domain">
+        <div class="domain-name">
+          <h3>EPC and construction</h3>
+          <p>Engineering, procurement, and construction teams working off different versions of the truth.</p>
+        </div>
+        <div class="cases">
+          <article class="case">
+            <h3>Constructability prediction</h3>
+            <p>Score upcoming work packages for readiness by checking materials, drawings, permits, and crews, so foremen start work that can actually finish.</p>
+            <p class="sys"><b>Connects:</b> Schedules, material status, engineering deliverables</p>
+          </article>
+          <article class="case">
+            <h3>Schedule recovery assistant</h3>
+            <p>When the critical path moves, show which activities can be resequenced and what each option does to cost and completion date.</p>
+            <p class="sys"><b>Connects:</b> Primavera P6, progress reports, resource plans</p>
+          </article>
+          <article class="case">
+            <h3>Field question answering</h3>
+            <p>Give site engineers a plain-language way to ask about specs, RFIs, and past lessons learned, with every answer linked to its source document.</p>
+            <p class="sys"><b>Connects:</b> Specs, RFI logs, lessons-learned libraries</p>
+          </article>
+          <article class="case">
+            <h3>Legacy system integration</h3>
+            <p>Bring data from older project tools into one model without a rip-and-replace, so new AI tools and existing teams share the same records.</p>
+            <p class="sys"><b>Connects:</b> Change data capture from legacy databases</p>
+          </article>
+        </div>
+      </div>
+
+      <div class="domain">
+        <div class="domain-name">
+          <h3>Enterprise AI platform</h3>
+          <p>The plumbing that lets every new use case go live faster and safer than the last.</p>
+        </div>
+        <div class="cases">
+          <article class="case">
+            <h3>Agent tool servers</h3>
+            <p>Expose your systems to AI assistants through secure, standards-based tool servers, with company sign-in, per-user permissions, and a full audit log.</p>
+            <p class="sys"><b>Connects:</b> Identity provider, internal APIs, API gateway</p>
+          </article>
+          <article class="case">
+            <h3>Operational data pipelines</h3>
+            <p>Stream changes from source systems into a governed data model, with development, test, and production environments that match.</p>
+            <p class="sys"><b>Connects:</b> ERP databases, data platform, CI/CD</p>
+          </article>
+          <article class="case">
+            <h3>Decision apps for frontline teams</h3>
+            <p>Build the screens planners and buyers actually use: one view of the problem, the AI's recommendation, and a button to act on it.</p>
+            <p class="sys"><b>Connects:</b> Shared data model, workflow actions</p>
+          </article>
+          <article class="case">
+            <h3>Evaluation and guardrails</h3>
+            <p>Test agents against real scenarios before launch, then monitor answer quality, tool use, and cost after it.</p>
+            <p class="sys"><b>Connects:</b> Logs, tracing, test scenario libraries</p>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="approach">
+    <div class="wrap">
+      <h2>How an engagement runs</h2>
+      <p class="intro">Forward deployed means we work where the problem is. Each stage ends with something your team can use.</p>
+      <ol class="steps">
+        <li><h3>Embed</h3><p>Spend the first weeks with the people who make the decision. Map how it's made today and what a better answer is worth.</p></li>
+        <li><h3>Connect</h3><p>Wire up the source systems and build a data model named in your team's own terms, not the database's.</p></li>
+        <li><h3>Ship a pilot</h3><p>Put a working tool in front of real users on a live project, then improve it weekly from what they tell us.</p></li>
+        <li><h3>Harden and hand over</h3><p>Add security, monitoring, and documentation, and train your team to run and extend it without us.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>What we hold to</h2>
+      <div class="principles">
+        <div><h3>People approve the actions</h3><p>Agents recommend and draft. Anything that spends money or changes a record goes through a person first.</p></div>
+        <div><h3>Your permissions, enforced</h3><p>AI tools see only what the signed-in user is allowed to see, checked by the source system, not by a prompt.</p></div>
+        <div><h3>Built on what you run</h3><p>We extend your existing platforms and data instead of adding another silo to maintain.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" class="contact">
+    <div class="wrap">
+      <h2>Have a decision that's costing you every week?</h2>
+      <p>Tell us what it is and where the data lives. We'll reply with whether forward deployed AI is a fit and what a first pilot would look like.</p>
+      <a class="btn" href="mailto:kumaran@perfectai.tech?subject=AI%20use%20case%20enquiry">Email kumaran@perfectai.tech</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 PerfectAI</span>
+    <a class="mail" href="mailto:kumaran@perfectai.tech">kumaran@perfectai.tech</a>
+  </div>
+</footer>
+
+</body>
+</html>
