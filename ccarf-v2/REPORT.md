@@ -46,6 +46,21 @@ A rebuilt study game for the Claude Certified Architect – Foundations exam, in
 - Helper files left in `C:\Users\kpkee\Demo`: `ccarf2-setup1.cmd`, `ccarf2-setup2a.cmd`, `ccarf2-setup2b.cmd`, `ccarf2-install.ps1`, three `ccarf2-*.txt` logs, `ccarf2-caddyfile-path.txt`. Safe to delete.
 - GitHub: branch `ccarf2-transfer` on `kpkeene/perfectai-site` now holds only a README (the proxy here refuses branch deletion); delete it in GitHub's branch list.
 
+
+## Load-time fix (2026-11-01, 13:15)
+
+Measured from outside before the fix: the module graph loaded in three sequential round trips (app.js → 11 modules → three.js), each ~600 ms over the home uplink, and nothing painted until all of it arrived: levels visible after 3.4 s. Changes (v2.1.1, live now):
+
+- `modulepreload` hints for every module, so the whole graph downloads in one wave.
+- The 3D stage (three.js) loads after the first paint; calls made before it is ready are queued and replayed in order. The clipboard shows a static skeleton immediately.
+- ETag / Last-Modified with 304 revalidation for app files; vendor files immutable for 7 days.
+
+After: levels visible after 1.1–1.3 s, 3D ready after 2.1–2.8 s; repeat visits paint in well under a second. Zero console errors.
+
+**Local access:** from inside your LAN, `ccarf2.perfectai.tech` goes out to your public IP and back through the router (NAT hairpin), which on your router drops large responses (the question bank failed with "Failed to fetch"; the old site's bank timed out from the PC too). On the PC use **http://localhost:8790**; phones on Wi-Fi are affected the same way until they leave the Wi-Fi or you add a local DNS override.
+
+**Collateral during the restart:** my process filter for the v2 server (`server.mjs`, not `perfectai-api`) also matched three helper processes of the OpenAI Codex app (`cua_node ... ./server.mjs`) and stopped them. Restart the Codex app if its tools misbehave. The live site's process was not touched.
+
 ## Not done
 
 No model comparison (4B vs 8B), no checkpoint-lineage check, no training. Rated answers now accumulate in `data/feedback.jsonl` as reviewable candidates for a future, properly licensed fine-tuning run.

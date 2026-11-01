@@ -133,9 +133,12 @@ renderXp();
 // ---------------- Views ----------------
 const views = ['missions', 'builder', 'quiz', 'ask', 'settings'];
 let currentView = null;
-function show(viewName) {
+function show(viewName, { rehome = false } = {}) {
   if (!views.includes(viewName)) viewName = 'missions';
-  if (viewName === currentView) return;
+  if (viewName === currentView) {
+    if (rehome) { if (viewName === 'missions') missionsHome(); if (viewName === 'quiz') quizApi?.home(); if (viewName === 'builder') builderOpen(); }
+    return;
+  }
   currentView = viewName;
   $('#workspace').dataset.view = viewName;
   views.forEach((v) => { $(`#view-${v}`).hidden = v !== viewName; });
@@ -148,7 +151,7 @@ function show(viewName) {
   if (location.hash !== `#${viewName}`) history.replaceState(null, '', `#${viewName}`);
   requestAnimationFrame(() => stage.resize());
 }
-$$('.nav button').forEach((b) => b.addEventListener('click', () => show(b.dataset.view)));
+$$('.nav button').forEach((b) => b.addEventListener('click', () => show(b.dataset.view, { rehome: true })));
 window.addEventListener('hashchange', () => show(location.hash.slice(1)));
 
 // ---------------- Missions ----------------
@@ -398,13 +401,14 @@ function renderReport() {
 }
 
 // ---------------- Quiz ----------------
-let quizMounted = false;
+let quizMounted = false; let quizApi = null;
 async function quizOpen() {
   if (quizMounted) return;
   const root = $('#view-quiz'); root.innerHTML = '<p class="fine">Loading the question bank…</p>';
   try {
     const bank = await loadBank(); quizMounted = true;
-    mountQuiz(root, { bank, onPatch: (p, l) => patch.say(p, l), onXp: addXp });
+    quizApi = mountQuiz(root, { bank, onPatch: (p, l) => patch.say(p, l), onXp: addXp,
+      onAsk: (text) => { show('ask'); askApi?.ask(text); } });
   } catch (e) { root.innerHTML = `<p class="error-line">${esc(e.message)} Start the preview server with a bank file (README).</p>`; }
 }
 

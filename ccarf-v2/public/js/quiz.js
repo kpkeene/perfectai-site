@@ -22,7 +22,7 @@ export async function loadBank() {
   return { questions: Array.isArray(data) ? data : data.questions || [], source: r.headers.get('X-Bank-Source') || 'unknown' };
 }
 
-export function mountQuiz(root, { bank, onPatch, onXp }) {
+export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
   const qs = bank.questions;
   const byId = new Map(qs.map((q) => [q.id, q]));
   let run = null;
@@ -39,6 +39,7 @@ export function mountQuiz(root, { bank, onPatch, onXp }) {
     });
     root.innerHTML = `
       <div class="quiz-home">
+        <h2>Boss rush · ${qs.length} practice questions</h2>
         <p class="fine">${qs.length} original practice questions. Not official or leaked exam items. ${bank.source === 'sample' ? '<strong>Sample bank loaded</strong>: connect your full bank (README).' : ''}</p>
         <div class="quiz-stats"><div><b>${answered}</b><span>answered</span></div><div><b>${answered ? Math.round((correct / answered) * 100) : 0}%</b><span>correct</span></div><div><b>${q.mistakes.length}</b><span>to review</span></div><div><b>${q.bookmarks.length}</b><span>bookmarked</span></div></div>
         <div class="quiz-modes">
@@ -147,8 +148,12 @@ export function mountQuiz(root, { bank, onPatch, onXp }) {
       <p>${fmt(reason)}</p>
       ${item.learning_objective ? `<p class="fine"><b>Objective:</b> ${fmt(item.learning_objective)}</p>` : ''}
       ${item.sources?.length ? `<p class="fine sources">Check it: ${item.sources.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.title)}</a>`).join(' · ')}</p>` : ''}
-      <button class="btn primary next">${run.over ? 'See the shift report' : run.i < run.list.length - 1 ? 'Next question' : 'See results'}</button>`;
+      <div class="row"><button class="btn primary next">${run.over ? 'See the shift report' : run.i < run.list.length - 1 ? 'Next question' : 'See results'}</button><button class="btn ghost ask-q">Ask Patch to explain this</button></div>`;
     after.querySelector('.next').addEventListener('click', () => { run.i++; !run.over && run.i < run.list.length ? show() : results(); });
+    after.querySelector('.ask-q').addEventListener('click', () => {
+      const opts = Object.entries(item.options).map(([k, v]) => `${k}) ${v}`).join('\n');
+      onAsk?.(`Practice question (original study material, not an official exam item):\n${item.stem || item.question.split('\n')[0]}\n${opts}\nThe keyed answer is ${item.correct_option}. I chose ${key}${correct ? ' (correct)' : ' (wrong)'}.\nExplain why ${item.correct_option} is the best answer and why ${correct ? 'the other options' : key} fall short, with one concrete example from a real system, and finish with a one-line memory hook for the exam.`);
+    });
     const r = correct && run.streak >= 3 ? react('streak', run.streak) : react(correct ? 'correct' : 'wrong');
     if (run.mode === 'shift' && !correct) onPatch?.(run.over ? 'facepalm' : 'alarmed', run.over ? 'Third page. The shift is over. Go home; the mistakes pile will still be here.' : `Paged. ${run.maxPages - run.pages} left before the shift ends.`);
     else onPatch?.(r.pose, r.line);

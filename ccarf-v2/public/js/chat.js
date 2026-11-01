@@ -149,5 +149,5 @@ export function mountAsk(root, { onPatch, onTopic, onStreamStart, onStreamEnd, g
     });
   }
 
-  return { ask: (t) => ask(t), prefill: (t) => { input.value = t; input.focus(); } };
+  return { ask: (t) => { if (controller) { input.value = t; input.focus(); onPatch?.('busy', 'One answer at a time. Yours is queued in the box; send it when this one finishes.'); } else ask(t); }, prefill: (t) => { input.value = t; input.focus(); } };
 }
