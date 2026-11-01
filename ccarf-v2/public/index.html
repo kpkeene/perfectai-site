@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Architect Studio · Night Shift</title>
-  <meta name="description" content="A study game for Claude agent architecture: play the agent loop, build architectures that survive stress tests, and practise with original questions.">
+  <meta name="description" content="An AI-first study game for Claude agent architecture: ask Patch, the resident tutor, from anywhere; play the agent loop; build architectures that survive stress tests; practise with original questions.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
@@ -32,7 +32,7 @@
       <button data-view="missions">Missions</button>
       <button data-view="builder">Builder</button>
       <button data-view="quiz">Questions</button>
-      <button data-view="ask">Ask Patch</button>
+      <button data-view="ask" id="nav-ask" aria-pressed="false">Ask Patch</button>
       <button data-view="settings">Settings</button>
     </nav>
     <div class="meta"><span id="xp" class="xp">0 XP</span><span id="model-pill" class="model-pill">Checking model…</span></div>
@@ -75,14 +75,24 @@
     </section>
 
     <aside id="side" class="side-panel" tabindex="-1">
-      <div class="patch-bar">
-        <div id="patch-portrait" class="patch-portrait"></div>
-        <div class="patch-speech"><span class="patch-name">Patch</span><p id="patch-line" class="patch-line" aria-live="polite"></p><span id="patch-tag" class="patch-tag"></span></div>
+      <div class="patch-dock">
+        <div class="patch-bar">
+          <div id="patch-portrait" class="patch-portrait"></div>
+          <div class="patch-speech"><span class="patch-name">Patch</span><p id="patch-line" class="patch-line" aria-live="polite"></p><span id="patch-tag" class="patch-tag"></span></div>
+        </div>
+        <form id="ask-bar" class="ask-bar" autocomplete="off">
+          <label class="sr-only" for="ask-input">Ask Patch, or tell the studio what to open</label>
+          <textarea id="ask-input" rows="1" maxlength="4000" placeholder="Ask Patch anything, or say “quiz me on MCP”…"></textarea>
+          <button type="submit" class="btn primary" id="ask-send">Ask</button>
+        </form>
+      </div>
+      <div id="view-ask" class="view ask-drawer" role="region" aria-label="Conversation with Patch" hidden>
+        <div class="ask-head"><span class="ask-title">Patch · conversation</span><button type="button" class="btn small ghost" id="ask-close">Back</button></div>
+        <div id="ask-mount"></div>
       </div>
       <div id="view-missions" class="view"><h1>Night shift at the architecture office</h1><p class="lede">Loading the levels…</p></div>
       <div id="view-builder" class="view" hidden></div>
       <div id="view-quiz" class="view" hidden></div>
-      <div id="view-ask" class="view" hidden></div>
       <div id="view-settings" class="view" hidden></div>
     </aside>
   </main>

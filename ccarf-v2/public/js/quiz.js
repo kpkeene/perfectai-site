@@ -39,7 +39,7 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
     });
     root.innerHTML = `
       <div class="quiz-home">
-        <h2>Boss rush · ${qs.length} practice questions</h2>
+        <h2>Questions · ${qs.length} original practice items</h2>
         <p class="fine">${qs.length} original practice questions. Not official or leaked exam items. ${bank.source === 'sample' ? '<strong>Sample bank loaded</strong>: connect your full bank (README).' : ''}</p>
         <div class="quiz-stats"><div><b>${answered}</b><span>answered</span></div><div><b>${answered ? Math.round((correct / answered) * 100) : 0}%</b><span>correct</span></div><div><b>${q.mistakes.length}</b><span>to review</span></div><div><b>${q.bookmarks.length}</b><span>bookmarked</span></div></div>
         <div class="quiz-modes">
@@ -62,6 +62,7 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
     if (mode === 'mistakes') return shuffle(q.mistakes.map((id) => byId.get(id)).filter(Boolean)).slice(0, 20);
     if (mode === 'bookmarks') return q.bookmarks.map((id) => byId.get(id)).filter(Boolean);
     if (mode === 'domain') return shuffle(qs.filter((x) => x.domain === domain)).slice(0, 10);
+    if (mode === 'exam') return shuffle(qs.filter((x) => DOMAIN_MAP[x.domain] === domain)).slice(0, 10); // one published exam domain (D1–D5)
     if (mode === 'shift') {
       // 12 questions: weighted by domain, ordered easy → hard, Advanced boss at the end.
       const rankD = { Foundational: 0, Applied: 1, Advanced: 2 };
@@ -88,6 +89,7 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
   }
 
   function show() {
+    run.lastChoice = null;
     const item = run.list[run.i];
     const q = store.quiz;
     const order = shuffle(Object.keys(item.options));
@@ -98,9 +100,10 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
           <span class="fine">${run.i + 1} / ${run.list.length}</span>
           <span class="chip">${esc(item.domain)}</span><span class="chip ghost">${esc(item.difficulty)}</span>
           <span class="streak" aria-live="polite">${run.streak > 1 ? `Streak ${run.streak}` : ''}</span>
-          ${run.mode === 'shift' ? `<span class="pager" aria-label="${run.maxPages - run.pages} pages left">${'●'.repeat(run.maxPages - run.pages)}${'○'.repeat(run.pages)}</span>` : ''}
+          ${run.mode === 'shift' ? `<span class="pager" title="Pages left before the shift ends: ${run.maxPages - run.pages} (each wrong answer pages you)" aria-label="${run.maxPages - run.pages} pages left">${'●'.repeat(run.maxPages - run.pages)}${'○'.repeat(run.pages)}</span>` : ''}
           ${run.i === run.list.length - 1 && run.mode === 'shift' ? '<span class="chip boss">Boss call</span>' : ''}
           <button class="btn small ghost bm" aria-pressed="${marked}">${marked ? 'Bookmarked' : 'Bookmark'}</button>
+          <button class="btn small ghost end-run" title="Stop this run and see the results so far">End run</button>
         </div>
         <p class="badge-original">Original practice question · not an official or leaked exam item</p>
         <h3 class="quiz-stem">${fmt(item.stem || item.question.split('\n')[0])}</h3>
@@ -108,6 +111,7 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
         <div class="quiz-after" hidden></div>
         <p class="fine kbd-hint">Keys 1–4 choose · Enter continues</p>
       </div>`;
+    root.querySelector('.end-run').addEventListener('click', () => { run.i = Math.max(run.i, 0); results(); });
     const bm = root.querySelector('.bm');
     bm.addEventListener('click', () => {
       const qq = store.quiz; const has = qq.bookmarks.includes(item.id);
@@ -124,12 +128,15 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
   }
 
   function answer(item, key, buttons) {
+    run.lastChoice = key;
     const correct = key === item.correct_option;
     const q = store.quiz;
-    q.answers[item.id] = { correct, chosen: key, at: Date.now() };
+    q.answers[item.id] = { correct, chosen: key, d: DOMAIN_MAP[item.domain] || null, at: Date.now() };
     if (correct) q.mistakes = q.mistakes.filter((x) => x !== item.id); else if (!q.mistakes.includes(item.id)) q.mistakes.push(item.id);
     run.streak = correct ? run.streak + 1 : 0; if (correct) run.right++;
     if (!correct) { run.pages++; if (run.pages >= run.maxPages) run.over = true; }
+    const streakEl = root.querySelector('.streak'); if (streakEl) streakEl.textContent = run.streak > 1 ? `Streak ${run.streak}` : '';
+    const pagerEl = root.querySelector('.pager'); if (pagerEl) { pagerEl.textContent = '●'.repeat(run.maxPages - run.pages) + '○'.repeat(run.pages); pagerEl.title = `Pages left before the shift ends: ${run.maxPages - run.pages}`; }
     q.streakBest = Math.max(q.streakBest || 0, run.streak);
     store.saveQuiz(q);
     const pd = (run.perDomain[item.domain] ||= { ok: 0, n: 0 }); pd.n++; if (correct) pd.ok++;
@@ -141,12 +148,17 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
       const r = item.distractor_rationales?.[k];
       if (r) { why.hidden = false; why.innerHTML = fmt(r.replace(/^Correct:\s*/i, '')); }
     });
+    const norm = (x) => String(x || '').toLowerCase().replace(/^(correct:|objective:)\s*/i, '').replace(/[^a-z0-9]+/g, ' ').trim();
+    const shownRationale = norm(item.distractor_rationales?.[item.correct_option]);
     const reason = (item.reference_reasoning || '').split(/\n\n/)[0];
+    const showReason = reason && !shownRationale.includes(norm(reason)) && !norm(reason).includes(shownRationale);
+    const objTail = (item.learning_objective || '').split(':').slice(1).join(':').trim() || item.learning_objective || '';
+    const showObjective = objTail && !shownRationale.includes(norm(objTail)) && !norm(reason).includes(norm(objTail));
     const after = root.querySelector('.quiz-after'); after.hidden = false;
     after.innerHTML = `
-      <p class="verdict ${correct ? 'ok' : 'bad'}">${correct ? 'Correct.' : 'Not this time.'}</p>
-      <p>${fmt(reason)}</p>
-      ${item.learning_objective ? `<p class="fine"><b>Objective:</b> ${fmt(item.learning_objective)}</p>` : ''}
+      <p class="verdict ${correct ? 'ok' : 'bad'}">${correct ? 'Correct.' : `Not this time. The keyed answer is ${item.correct_option}.`}</p>
+      ${showReason ? `<p>${fmt(reason)}</p>` : ''}
+      ${showObjective ? `<p class="fine"><b>Objective:</b> ${fmt(item.learning_objective)}</p>` : item.learning_objective ? `<p class="fine"><b>Topic:</b> ${esc((item.learning_objective.split(':')[0] || item.topic).trim())}</p>` : ''}
       ${item.sources?.length ? `<p class="fine sources">Check it: ${item.sources.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.title)}</a>`).join(' · ')}</p>` : ''}
       <div class="row"><button class="btn primary next">${run.over ? 'See the shift report' : run.i < run.list.length - 1 ? 'Next question' : 'See results'}</button><button class="btn ghost ask-q">Ask Patch to explain this</button></div>`;
     after.querySelector('.next').addEventListener('click', () => { run.i++; !run.over && run.i < run.list.length ? show() : results(); });
@@ -176,5 +188,12 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
   }
 
   home();
-  return { home };
+  // What Patch can see when the learner asks from the ask bar mid-question.
+  function current() {
+    if (!run || run.i >= run.list.length) return '';
+    const item = run.list[run.i]; const stem = (item.stem || item.question.split('\n')[0]).slice(0, 260);
+    const opts = Object.entries(item.options).map(([k, v]) => `${k}) ${String(v).slice(0, 90)}`).join(' ');
+    return `practice question ${item.id} (${item.domain}): "${stem}" options: ${opts}. Keyed answer ${item.correct_option}${run.lastChoice && root.querySelector('.option[disabled]') ? `; learner chose ${run.lastChoice}` : '; not answered yet (do not reveal the answer unless asked)'}.`;
+  }
+  return { home, start, current, inRun: () => !!run && run.i < run.list.length };
 }

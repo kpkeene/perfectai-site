@@ -166,7 +166,7 @@ export class Stage {
       group.userData.nodeId = n.id;
       this.world.add(group);
       const label = document.createElement('button');
-      label.className = 'node-label'; label.type = 'button';
+      label.className = 'node-label'; label.type = 'button'; label.tabIndex = -1; // the stage itself is the tab stop; labels are reached by arrow keys / pointer
       label.innerHTML = `<span class="nl-name"></span><span class="nl-status" data-status="idle">idle</span>`;
       label.querySelector('.nl-name').textContent = n.label;
       label.setAttribute('aria-label', `${n.label}: ${n.role}. Select for details.`);
@@ -241,8 +241,8 @@ export class Stage {
     const aspect = Math.max(0.4, this.camera.aspect);
     const vfov = THREE.MathUtils.degToRad(this.camera.fov);
     const needH = (Math.max(d * 0.95, 9) + 3) / (2 * Math.tan(vfov / 2));
-    const needW = (Math.max(w, 10) * 0.86) / (2 * Math.tan(vfov / 2) * aspect);
-    const dist = Math.max(needH, needW) * 1.12 + 4;
+    const needW = (Math.max(w, 10) * 0.95) / (2 * Math.tan(vfov / 2) * aspect);
+    const dist = Math.max(needH, needW) * 1.15 + 4;
     this.controls.target.set(cx, 1.6, cz);
     const elev = 0.76, az = -0.42;
     this.camera.position.set(cx + Math.sin(az) * Math.cos(elev) * dist, Math.sin(elev) * dist + 1.6, cz + Math.cos(az) * Math.cos(elev) * dist);
@@ -402,14 +402,17 @@ export class Stage {
       const el = it.n.label;
       el.classList.toggle('compact', compactMode && it.n.node.id !== this.selected);
       const bw = el.offsetWidth || 120, bh = el.offsetHeight || 34;
-      let y = it.y - bh; let ok = false;
-      for (let tries = 0; tries < 4; tries++) {
-        const box = { l: it.x - bw / 2, r: it.x + bw / 2, t: y, b: y + bh };
-        if (!placed.some((p) => !(box.r < p.l + 2 || box.l > p.r - 2 || box.b < p.t + 2 || box.t > p.b - 2))) { placed.push(box); ok = true; break; }
-        y -= bh * 0.7 + 4;
+      // Candidate positions: above the prop, then nudged up, then shifted sideways, before giving up.
+      const free = (box) => !placed.some((p) => !(box.r < p.l + 2 || box.l > p.r - 2 || box.b < p.t + 2 || box.t > p.b - 2));
+      const cands = [[0, 0], [0, -(bh * 0.7 + 4)], [bw * 0.55, -(bh * 0.35)], [-bw * 0.55, -(bh * 0.35)], [0, -2 * (bh * 0.7 + 4)], [bw * 0.55, -(bh * 1.05 + 4)], [-bw * 0.55, -(bh * 1.05 + 4)]];
+      let x = it.x, y = it.y - bh, ok = false;
+      for (const [dx, dy] of cands) {
+        const cx = Math.min(Math.max(bw / 2 + 4, it.x + dx), w - bw / 2 - 4), cy = Math.max(4, it.y - bh + dy);
+        const box = { l: cx - bw / 2, r: cx + bw / 2, t: cy, b: cy + bh };
+        if (free(box)) { placed.push(box); x = cx; y = cy; ok = true; break; }
       }
       const inView = !it.behind && it.x > -bw && it.x < w + bw && y > -bh && y < h;
-      const lx = Math.min(Math.max(4, it.x - bw / 2), w - bw - 4); // keep labels inside the stage
+      const lx = Math.min(Math.max(4, x - bw / 2), w - bw - 4); // keep labels inside the stage
       el.style.transform = `translate(${Math.round(lx)}px, ${Math.round(Math.max(4, y))}px)`;
       el.classList.toggle('hidden', !ok || !inView);
     }

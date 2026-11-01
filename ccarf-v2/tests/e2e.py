@@ -70,6 +70,26 @@ async def run(p, name, vw, vh, mobile=False):
     # cancel test
     await page.fill('#ask-input', 'Explain retries'); await page.keyboard.press('Enter'); await page.wait_for_timeout(400); await page.click('.stop'); await page.wait_for_timeout(500)
     res['cancel_text'] = await page.locator('.msg.assistant').last.inner_text()
+    # AI-first: the ask bar routes plain-language commands, keeps the learner's work on the table, and sees context
+    sent = []
+    page.on('request', lambda r: sent.append(json.loads(r.post_data or '{}')) if r.url.endswith('/api/chat') and r.method == 'POST' else None)
+    await page.click('#ask-close'); await page.wait_for_timeout(200)
+    await page.fill('#ask-input', 'quiz me on MCP'); await page.keyboard.press('Enter'); await page.wait_for_selector('.quiz-card', timeout=8000)
+    res['route_quiz'] = await page.inner_text('#patch-line')
+    await page.fill('#ask-input', 'play level 3'); await page.keyboard.press('Enter'); await page.wait_for_timeout(900)
+    res['route_mission'] = await page.inner_text('#stage-title')
+    await page.wait_for_selector('[data-action]:not([disabled])', timeout=20000); await page.click('[data-action]:not([disabled])'); await page.wait_for_timeout(600)
+    await page.fill('#ask-input', 'Why would that step page me?'); await page.keyboard.press('Enter'); await page.wait_for_timeout(700)
+    res['drawer_open_in_mission'] = not await page.is_hidden('#view-ask')
+    res['stage_kept'] = await page.inner_text('#stage-title')
+    res['context_sent'] = (sent[-1].get('context') if sent else None)
+    await page.locator('.msg.assistant').last.locator('.msg-meta:has-text(" s")').wait_for(timeout=15000)
+    await page.click('#ask-close'); await page.wait_for_timeout(200)
+    res['mission_intact_after_close'] = await page.evaluate('!!document.querySelector("#view-missions .hud") && document.getElementById("view-missions").hidden === false')
+    await page.fill('#ask-input', 'how am I doing?'); await page.keyboard.press('Enter'); await page.wait_for_timeout(400)
+    res['local_progress'] = 'Where you stand' in await page.locator('.msg.assistant').last.inner_text()
+    await page.screenshot(path=f'{OUT}/{name}-11-ai-first.png', full_page=mobile)
+    await page.click('#ask-close')
     # persistence across reload
     await page.reload(); await page.wait_for_timeout(1200)
     res['persist'] = await page.evaluate('({xp: window.__studio.store.progress.xp, m: Object.keys(window.__studio.store.progress.missions), bm: window.__studio.store.quiz.bookmarks.length, ans: Object.keys(window.__studio.store.quiz.answers).length})')

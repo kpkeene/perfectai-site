@@ -61,6 +61,17 @@ After: levels visible after 1.1–1.3 s, 3D ready after 2.1–2.8 s; repeat visi
 
 **Collateral during the restart:** my process filter for the v2 server (`server.mjs`, not `perfectai-api`) also matched three helper processes of the OpenAI Codex app (`cua_node ... ./server.mjs`) and stopped them. Restart the Codex app if its tools misbehave. The live site's process was not touched.
 
+## AI-first layer (2026-11-01, afternoon; v2.1.4)
+
+Requested: "the AI tutor as an AI-first website for the entire site". Implemented as a layer rather than a page:
+
+- `index.html`: a sticky **Patch dock** (portrait, speech line, ask bar) at the top of the clipboard on every view; the old Ask tab is now a conversation drawer (`#view-ask`) that opens over the current view and closes back to it. Deep link: `#missions/ask`, `#quiz/ask`, etc.
+- `app.js`: `askPatch(text)` is the single entry point for the bar, the home chips, the mission debrief, the builder report and the per-question button. `routeIntent()` handles plain-language commands locally (navigation, play level N / a named incident, builder scenario, quiz modes and exam domains, weakest-domain drill, progress report). Everything else streams from the local model with `askContext()` attached: section, mission step history and pages, design order and failing stress tests, or the current question (marked "not answered yet" so Patch does not reveal the key). `stageIsFree()` keeps the mission/design on the 3D table while Patch answers; on the home, quiz and settings views the conceptual scene illustrates the answer as before.
+- `chat.js`: the input and send button live outside the drawer; contextual suggestion chips per view; `local()` bubbles for studio-answered questions, labelled "no model call"; one Ask/Stop control.
+- `quiz.js`: `start(mode, domain)` and `current()` exposed; new `exam` mode drills one published domain (D1–D5); answers now record their exam domain so "quiz me on my weakest domain" works.
+- `persona.js`: Patch knows the three rooms, anchors on the context line, and will not name the exact next button in a mission.
+- Verified headless (desktop 1440×900 and mobile 390×844, fake model): "quiz me on MCP" opens a D4 drill; "play level 3" starts the refund incident; asking mid-mission opens the drawer, keeps "Level 3" on the stage, and the request carries the mission context; closing returns to the live mission; "how am I doing?" answers locally.
+
 ## Not done
 
 No model comparison (4B vs 8B), no checkpoint-lineage check, no training. Rated answers now accumulate in `data/feedback.jsonl` as reviewable candidates for a future, properly licensed fine-tuning run.

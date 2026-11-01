@@ -23,8 +23,7 @@ async def main():
     await pg.screenshot(path='tests/shots/q-l5-stage.png', clip={'x':0,'y':60,'width':960,'height':700})
     # builder: save + compare
     await pg.click('.nav [data-view="builder"]'); await pg.wait_for_timeout(500); await pg.click('#b-example'); await pg.click('#b-inspect'); await pg.wait_for_timeout(300)
-    pg.on('dialog', lambda dlg: asyncio.ensure_future(dlg.accept('Baseline')))
-    await pg.click('#b-save'); await pg.wait_for_timeout(400)
+    await pg.click('#b-save'); await pg.fill('#b-name', 'Baseline'); await pg.keyboard.press('Enter'); await pg.wait_for_timeout(400)
     print('saved', await pg.inner_text('.saved'))
     await pg.screenshot(path='tests/shots/q-builder-report.png')
     # night shift

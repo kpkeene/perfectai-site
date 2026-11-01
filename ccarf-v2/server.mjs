@@ -26,7 +26,7 @@ const MAX_INPUT = 4000;
 const MAX_HISTORY = 8;
 const QUESTIONS_FILE = process.env.QUESTIONS_FILE || path.join(__dirname, 'data', 'questions.json');
 const QUESTIONS_URL = process.env.QUESTIONS_URL || '';
-const VERSION = '2.1.1';
+const VERSION = '2.1.4';
 const TRUST_PROXY = process.env.TRUST_PROXY === '1';           // set when behind Caddy so rate limits see the real client IP
 const ACCESS_CODE = process.env.ACCESS_CODE || '';             // optional: chat requires this code (entered once in the UI)
 const DAILY_CHAR_BUDGET = Number(process.env.DAILY_CHAR_BUDGET || 1_500_000); // generated characters per UTC day across all users
@@ -40,6 +40,18 @@ const MIME = {
   '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png',
   '.woff2': 'font/woff2', '.ico': 'image/x-icon',
 };
+
+// ---- keep the Ollama model loaded so the first question after a quiet spell is not a 60 s cold start ----
+const OLLAMA_NATIVE = MODEL_BASE.replace(/\/v1\/?$/, '');
+const KEEP_WARM = process.env.KEEP_WARM !== '0' && /:11434(\/|$)/.test(MODEL_BASE);
+let warmState = 'off';
+async function warmModel() {
+  try {
+    const r = await fetch(`${OLLAMA_NATIVE}/api/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: MODEL_NAME, keep_alive: '45m' }) });
+    warmState = r.ok ? 'warm' : `http ${r.status}`;
+  } catch (e) { warmState = `unreachable: ${e.message}`; }
+}
+if (KEEP_WARM) { warmModel(); setInterval(warmModel, 15 * 60 * 1000).unref(); }
 
 // ---- single-flight queue: one model response at a time (protects a 24 GB GPU) ----
 let busy = false;
@@ -266,7 +278,7 @@ function serveStatic(req, res) {
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x');
-    if (url.pathname === '/api/health') { rollDay(); return send(res, 200, { ok: true, version: VERSION, model: MODEL_LABEL, demo: !MODEL_BASE, busy, queued: waiters.length, maxTokens: MAX_TOKENS, needsCode: !!ACCESS_CODE, budgetLeft: Math.max(0, DAILY_CHAR_BUDGET - daily.chars), feedbackCount: countFeedback() }); }
+    if (url.pathname === '/api/health') { rollDay(); return send(res, 200, { ok: true, version: VERSION, model: MODEL_LABEL, demo: !MODEL_BASE, busy, queued: waiters.length, maxTokens: MAX_TOKENS, keepWarm: KEEP_WARM ? warmState : 'off', needsCode: !!ACCESS_CODE, budgetLeft: Math.max(0, DAILY_CHAR_BUDGET - daily.chars), feedbackCount: countFeedback() }); }
     if (url.pathname === '/api/feedback' && req.method === 'POST') return handleFeedback(req, res);
     if (url.pathname === '/api/questions' && req.method === 'GET') {
       const q = await loadQuestions();

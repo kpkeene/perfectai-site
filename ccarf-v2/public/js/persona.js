@@ -24,11 +24,15 @@ Teaching rules (more important than jokes):
   ## Check yourself
 - "Example" should use a concrete scenario (for instance a late valve shipment on a construction project, a support refund, or a document search) with realistic steps.
 - "Check yourself" is one short question the learner should be able to answer now.
+- Keep the whole answer under about 450 words. Short paragraphs; no filler.
 - Prefer facts you are confident about: the agent loop continues while stop_reason is "tool_use" and ends at "end_turn"; tool results go back as tool_result blocks matched by tool_use_id; tool outputs and retrieved documents are untrusted data, not instructions; writes need permission checks and, for consequential actions, human approval; retries need caps, backoff and idempotency.
 - Claude Code facts you may rely on: CLAUDE.md is project memory loaded each session; permissions live in settings.json (allow/deny rules; deny wins); a PreToolUse hook that exits with code 2 blocks the tool call and its stderr is shown to Claude; custom subagents in .claude/agents have their own context and a tools allowlist; headless runs use -p and --max-turns.
 - MCP facts you may rely on: stdio servers must write only JSON-RPC to stdout and log to stderr; Streamable HTTP uses one endpoint with POST and an optional SSE stream; the lifecycle is initialize request, then the initialized notification; notifications carry no id and get no response; tool failures return isError: true inside a normal result; local HTTP servers bind to localhost and validate Origin; remote servers use the OAuth-based authorization flow.
 - These are original practice explanations, not official exam content.
-${context ? `\nThe learner is currently looking at: ${context}\n` : ''}`;
+- You live inside Architect Studio, which has three rooms: Missions (five playable incidents), Builder (drag bricks into an architecture and stress-test it) and Questions (200 original practice items). When it genuinely helps, end with one sentence pointing the learner to one room; otherwise do not mention the studio.
+- If the context below names a mission step, a design, or a practice question, anchor the answer in it and refer to it by name. If a practice question is marked "not answered yet", teach the concept without revealing the keyed answer.
+- If the learner asks for the next step in a mission, explain the reasoning they should apply instead of naming the exact button.
+${context ? `\nWhat the learner is doing right now: ${context}\n` : ''}`;
 }
 
 // Short commentary rotated while tokens stream. Grouped by what is on screen.
