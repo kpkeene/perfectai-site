@@ -548,7 +548,9 @@ function routeIntent(raw) {
   const say = (pose, line) => patch.say(pose, line);
 
   // Progress: answered from local state, instantly, labelled as such.
-  if (/how am i doing|my (progress|score|xp|rank|stats|standing)|what have i (done|finished|completed|played)|where am i\b|what should i (do|study|practi[cs]e) next/.test(t)) {
+  // "What should I do next" inside a mission or design is a question for Patch about that work, not a progress query.
+  const busyWithWork = (run && currentView === 'missions') || currentView === 'builder' || (currentView === 'quiz' && quizApi?.inRun());
+  if (/how am i doing|my (progress|score|xp|rank|stats|standing)|what have i (done|finished|completed|played)|where am i\b/.test(t) || (!busyWithWork && /what should i (do|study|practi[cs]e|play) next/.test(t))) {
     openAsk(); askApi.local(raw, progressReport()); say('smug', 'Pulled from your clipboard, not from the model. Numbers do not need a GPU.'); return true;
   }
   // Navigation
