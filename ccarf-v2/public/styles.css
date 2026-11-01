@@ -373,3 +373,7 @@ h2 { font: 700 1.3rem/1.2 var(--display); margin: 0; }
 }
 .reduced-motion *, .reduced-motion *::before, .reduced-motion .sprite g { transition: none !important; animation: none !important; }
 @media (prefers-reduced-motion: reduce) { *, .sprite g { transition: none !important; animation: none !important; } }
+
+.stale-bar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 8px 14px; background: var(--hazard); color: var(--ink); font-weight: 700; }
+.stale-bar .fine { color: var(--ink-2); font-weight: 400; }
+.error-line a { color: inherit; font-weight: 700; }

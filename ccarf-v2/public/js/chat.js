@@ -105,6 +105,7 @@ export function mountAsk(root, { input, sendBtn, onSubmit, onPatch, onTopic, onS
   async function ask(text, isRetry = false) {
     if (!isRetry) { history.push({ role: 'user', content: text }); bubble('user', `<p>${esc(text)}</p>`); }
     const el = bubble('assistant', '<div class="answer"><p class="fine wait-line">Waiting for the model…</p></div><div class="msg-meta fine"></div>');
+    if (isRetry) el.dataset.autoretried = '1';
     const ans = el.querySelector('.answer'); const meta = el.querySelector('.msg-meta');
     const waitStart = performance.now();
     const waitTimer = setInterval(() => {
@@ -114,7 +115,7 @@ export function mountAsk(root, { input, sendBtn, onSubmit, onPatch, onTopic, onS
       w.textContent = s < 8 ? 'Waiting for the model…' : `Waiting for the model… ${s} s. After a quiet spell the first answer can take up to a minute while the model loads into the GPU.`;
     }, 1000);
     controller = new AbortController(); setBusy(true);
-    let acc = ''; const seenTopics = new Set(); let lastRender = 0; let failed = null; let demo = false; let truncated = false; let cancelledFlag = false;
+    let retrying = false; let acc = ''; const seenTopics = new Set(); let lastRender = 0; let failed = null; let demo = false; let truncated = false; let cancelledFlag = false;
     onStreamStart?.();
     startQuips('start');
     try {
@@ -157,8 +158,20 @@ export function mountAsk(root, { input, sendBtn, onSubmit, onPatch, onTopic, onS
       if (!demo && acc) feedbackRow(el, history.slice(-8));
     } catch (err) {
       stopQuips();
-      const cancelled = err.name === 'AbortError' || /cancel/i.test(err.message); cancelledFlag = cancelled; if (!cancelled) failed = failed || err.message;
-      ans.innerHTML = renderMarkdown(acc) + `<p class="error-line">${cancelled ? 'Stopped. The partial answer above is kept.' : esc(err.message)}</p>`;
+      const cancelled = err.name === 'AbortError' || /cancel/i.test(err.message);
+      // A network-level failure (the request never reached the server, or the connection dropped
+      // before any text arrived) is usually transient: retry once by itself before bothering the learner.
+      const network = !cancelled && err instanceof TypeError;
+      if (network && !acc && !isRetry && !el.dataset.autoretried) {
+        clearInterval(waitTimer); controller = null; setBusy(false);
+        el.remove(); retrying = true; setTimeout(() => ask(text, true), 1500); return;
+      }
+      cancelledFlag = cancelled; if (!cancelled) failed = failed || err.message;
+      const local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+      const why = network
+        ? `Could not reach the studio server${acc ? ' (the connection dropped mid-answer)' : ''}. Check your connection and try again.${local ? '' : ' On the computer that runs the studio, open <a href="http://localhost:8790/">http://localhost:8790</a> instead: some home routers drop requests that leave and re-enter the same network.'}`
+        : esc(err.message);
+      ans.innerHTML = renderMarkdown(acc) + `<p class="error-line">${cancelled ? 'Stopped. The partial answer above is kept.' : why}</p>`;
       if (!cancelled) {
         const retry = document.createElement('button'); retry.className = 'btn small'; retry.textContent = 'Try again';
         retry.addEventListener('click', () => { el.remove(); ask(text, true); }); ans.append(retry);
@@ -166,6 +179,7 @@ export function mountAsk(root, { input, sendBtn, onSubmit, onPatch, onTopic, onS
       onPatch?.(cancelled ? 'neutral' : 'alarmed', pickQuip(cancelled ? 'cancelled' : 'error'), { commentary: true });
     } finally {
       clearInterval(waitTimer);
+      if (retrying) return;
       controller = null; setBusy(false); onStreamEnd?.({ truncated, cancelled: cancelledFlag, failed: !!failed && !cancelledFlag });
     }
   }

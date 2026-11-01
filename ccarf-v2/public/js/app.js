@@ -655,7 +655,21 @@ async function settingsOpen() {
 }
 
 // ---------------- boot ----------------
-fetch('/api/health').then((r) => r.json()).then((h) => { $('#model-pill').textContent = h.model; $('#model-pill').dataset.demo = String(h.demo); }).catch(() => { $('#model-pill').textContent = 'Model offline'; });
+// Stale-tab check: if the server runs a newer build than this page, offer a reload.
+const BUILD = '2.1.4';
+function checkHealth() {
+  return fetch('/api/health', { cache: 'no-store' }).then((r) => r.json()).then((h) => {
+    $('#model-pill').textContent = h.model; $('#model-pill').dataset.demo = String(h.demo);
+    if (h.version && h.version !== BUILD && !$('#stale-bar')) {
+      const bar = document.createElement('div'); bar.id = 'stale-bar'; bar.className = 'stale-bar'; bar.setAttribute('role', 'status');
+      bar.innerHTML = `A newer version of the studio is live (v${esc(h.version)}). <button class="btn small primary" type="button">Reload</button> <span class="fine">Your progress is kept.</span>`;
+      bar.querySelector('button').addEventListener('click', () => location.reload());
+      document.body.prepend(bar);
+    }
+  }).catch(() => { $('#model-pill').textContent = 'Server unreachable'; });
+}
+checkHealth();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkHealth(); });
 { const [v, sub] = (location.hash.slice(1) || 'missions').split('/'); show(v); if (sub === 'ask' || v === 'ask') openAsk(); }
 mountAskOnce(); refreshAskBar();
 requestAnimationFrame(() => setTimeout(loadStage, 0));
