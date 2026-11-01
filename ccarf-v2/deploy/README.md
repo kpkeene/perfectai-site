@@ -16,3 +16,8 @@ Target: `https://ccarf2.perfectai.tech` → Caddy → `127.0.0.1:8790` → `node
 Optional protection for a public URL: `-AccessCode "<secret>"` makes chat (not missions, builder or quiz) require a code that visitors enter once in Settings. `-DailyCharBudget` caps total generated characters per day.
 
 Rollback: `.\deploy\install.ps1 -Uninstall`, remove the Caddy block, reload Caddy, delete the DNS record.
+
+
+## Restarting the server after an update
+
+`run.cmd` keeps node alive in a loop, so to pick up a new `server.mjs` stop both the loop and its node, then start `run.cmd` again. The node process to stop is the one **whose parent is that loop** (command line `"C:\Program Files\nodejs\node.exe"  server.mjs`). Do not match on `server.mjs` alone: OpenAI Codex's computer-use helpers also run a `./server.mjs` under `cua_node`, and the api.perfectai.tech service runs `perfectai-api\server.mjs`. `deploy\install.ps1` (and `-Uninstall`) use the parent-process rule.

@@ -72,6 +72,12 @@ Requested: "the AI tutor as an AI-first website for the entire site". Implemente
 - `persona.js`: Patch knows the three rooms, anchors on the context line, and will not name the exact next button in a mission.
 - Verified headless (desktop 1440×900 and mobile 390×844, fake model): "quiz me on MCP" opens a D4 drill; "play level 3" starts the refund incident; asking mid-mission opens the drawer, keeps "Level 3" on the stage, and the request carries the mission context; closing returns to the live mission; "how am I doing?" answers locally.
 
+## Deployment of v2.1.4 (2026-11-01, 14:34–14:40)
+
+- Static files: `ccarf2-deploy.cmd` (Demo folder) downloaded the transfer branch, robocopied into the install folder, rewrote `run.cmd` with `MAX_TOKENS=2200`, stopped the old loop and started a new one. The old node (v2.1.1) survived the first pass because its command line has two spaces (`node.exe"  server.mjs`).
+- `ccarf2-fix.cmd` then stopped the processes whose command line ends in `server.mjs`. That hit the studio's old node **and three OpenAI Codex computer-use helper processes** (`cua_node\…\node.exe ./server.mjs`). The api.perfectai.tech service (`perfectai-api\server.mjs`) was not touched. Codex restarts its helpers on demand; if a Codex session was open it may need to be restarted. The installer now stops only the node whose parent is the studio's own `run.cmd` loop (see deploy/README.md).
+- Live after the fix: `/api/health` → version 2.1.4, maxTokens 2200, keepWarm "warm"; `/js/app.js` and `/` serve the AI-first build.
+
 ## Not done
 
 No model comparison (4B vs 8B), no checkpoint-lineage check, no training. Rated answers now accumulate in `data/feedback.jsonl` as reviewable candidates for a future, properly licensed fine-tuning run.

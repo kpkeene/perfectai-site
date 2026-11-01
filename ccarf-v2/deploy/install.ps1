@@ -35,8 +35,11 @@ if ($Uninstall) {
   schtasks /End /TN $TaskName 2>$null | Out-Null
   schtasks /Delete /F /TN $TaskName 2>$null | Out-Null
   Remove-Item (Join-Path ([Environment]::GetFolderPath('Startup')) "$TaskName.vbs") -ErrorAction SilentlyContinue
-  Get-CimInstance Win32_Process -Filter "Name='cmd.exe'" | Where-Object { $_.CommandLine -like "*$root\run.cmd*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
-  Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -like "*$root*server.mjs*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+  # Only the studio's own node: started by run.cmd, so its parent is a cmd.exe whose command line names this folder's run.cmd.
+  # (Other tools also run a "server.mjs"; matching on the file name alone has killed them before.)
+  $loops = @(Get-CimInstance Win32_Process -Filter "Name='cmd.exe'" | Where-Object { $_.CommandLine -like "*$root\run.cmd*" } | ForEach-Object { $_.ProcessId })
+  $loops | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
+  Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $loops -contains $_.ParentProcessId -and $_.CommandLine -match 'server\.mjs\s*$' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
   Write-Host "Removed task $TaskName and stopped the server. Files were left in place."
   exit 0
 }
@@ -65,6 +68,12 @@ $lines += "`"$($node.Source)`" server.mjs >> `"$logDir\server.log`" 2>&1"
 $lines += "timeout /t 5 /nobreak >nul"
 $lines += "goto loop"
 Set-Content -Path $runCmd -Value ($lines -join "`r`n") -Encoding ASCII
+
+# Stop a previous copy of the studio (its run.cmd loop and the node it started), nothing else.
+$loops = @(Get-CimInstance Win32_Process -Filter "Name='cmd.exe'" | Where-Object { $_.CommandLine -like "*$root\run.cmd*" } | ForEach-Object { $_.ProcessId })
+$loops | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
+Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $loops -contains $_.ParentProcessId -and $_.CommandLine -match 'server\.mjs\s*$' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+Start-Sleep 1
 
 schtasks /End /TN $TaskName 2>$null | Out-Null
 schtasks /Delete /F /TN $TaskName 2>$null | Out-Null
