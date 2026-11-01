@@ -1,1 +1,1 @@
-Temporary transfer branch for Architect Studio v2.1 (ccarf2.perfectai.tech). Not part of the website. Deleted after the files reach the serving PC.
+Transfer complete 2026-11-01; files removed. This branch can be deleted.
