@@ -2,6 +2,7 @@
 import { store } from './store.js';
 import { react } from './persona.js';
 import { DOMAINS } from './missions.js';
+import { mountAsk } from './chat.js';
 
 // Approximate mapping from the bank's ten domains to the five published exam domains.
 export const DOMAIN_MAP = {
@@ -22,7 +23,7 @@ export async function loadBank() {
   return { questions: Array.isArray(data) ? data : data.questions || [], source: r.headers.get('X-Bank-Source') || 'unknown' };
 }
 
-export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
+export function mountQuiz(root, { bank, onPatch, onXp }) {
   const qs = bank.questions;
   const byId = new Map(qs.map((q) => [q.id, q]));
   let run = null;
@@ -43,18 +44,22 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
         <p class="fine">${qs.length} original practice questions. Not official or leaked exam items. ${bank.source === 'sample' ? '<strong>Sample bank loaded</strong>: connect your full bank (README).' : ''}</p>
         <div class="quiz-stats"><div><b>${answered}</b><span>answered</span></div><div><b>${answered ? Math.round((correct / answered) * 100) : 0}%</b><span>correct</span></div><div><b>${q.mistakes.length}</b><span>to review</span></div><div><b>${q.bookmarks.length}</b><span>bookmarked</span></div></div>
         <div class="quiz-modes">
-          <button class="btn primary" data-mode="shift">Night shift · 12 questions, 3 pages</button>
+          <button class="btn primary" data-mode="all">${q.full && q.full.i > 0 && q.full.i < q.full.order.length ? `Resume full test · question ${q.full.i + 1} of ${q.full.order.length}` : `Full test · all ${qs.length} questions`}</button>
+          <button class="btn" data-mode="shift">Night shift · 12 questions, 3 pages</button>
           <button class="btn" data-mode="weighted">Exam-weighted run · 20</button>
           <button class="btn" data-mode="mistakes" ${q.mistakes.length ? '' : 'disabled'}>Review mistakes · ${q.mistakes.length}</button>
           <button class="btn" data-mode="bookmarks" ${q.bookmarks.length ? '' : 'disabled'}>Bookmarks · ${q.bookmarks.length}</button>
         </div>
         <h3 class="h-sub">Drill a domain</h3>
         <ul class="mastery">${mastery.map((m) => `<li><button class="mastery-row" data-domain="${esc(m.d)}"><span>${esc(m.d)}</span><span class="bar" aria-hidden="true"><i style="width:${(m.ok / m.total) * 100}%"></i></span><span class="fine">${m.ok}/${m.total}</span></button></li>`).join('')}</ul>
+        <p class="fine">Full test: every question in the bank once, shuffled, saved after each answer so you can stop and resume. ${q.full?.done ? `Last full test: <b>${q.full.lastScore}%</b>.` : ''}${q.full && q.full.i > 0 && q.full.i < q.full.order.length ? ` <button class="btn small ghost" data-restart-full>Start the full test over</button>` : ''}</p>
+        <p class="fine">Every question has Patch underneath it: ask for a hint before you answer, or keep asking follow-ups after.</p>
         <p class="fine">Night shift: exam-weighted questions, hardest last. Each wrong answer pages you; three pages end the shift. Best shift so far: <b>${q.shiftBest || 0}</b> survived.</p>
         <p class="fine">Weighted runs map the bank's ten topics onto the five published exam domains (${Object.entries(WEIGHTED).map(([k, v]) => `${k} ${v}`).join(', ')} questions). The mapping is ours and approximate.</p>
       </div>`;
     root.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => start(b.dataset.mode)));
     root.querySelectorAll('[data-domain]').forEach((b) => b.addEventListener('click', () => start('domain', b.dataset.domain)));
+    root.querySelector('[data-restart-full]')?.addEventListener('click', () => { const qq = store.quiz; delete qq.full; store.saveQuiz(qq); start('all'); });
   }
 
   function pick(mode, domain) {
@@ -81,6 +86,14 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
   }
 
   function start(mode, domain) {
+    if (mode === 'all') {
+      const qq = store.quiz; let f = qq.full;
+      const valid = f && Array.isArray(f.order) && f.order.length === qs.length && f.order.every((id) => byId.has(id)) && f.i < f.order.length;
+      if (!valid) { f = { order: shuffle(qs).map((x) => x.id), i: 0, right: 0, perDomain: {} }; qq.full = f; store.saveQuiz(qq); }
+      run = { mode, list: f.order.map((id) => byId.get(id)), i: f.i, streak: 0, right: f.right, perDomain: { ...f.perDomain }, pages: 0, maxPages: Infinity, over: false };
+      onPatch?.('busy', f.i ? `Back at question ${f.i + 1} of ${qs.length}. Your place was kept, unlike most production state.` : `All ${qs.length} questions, once each. Stop whenever; I keep your place.`);
+      show(); return;
+    }
     const list = pick(mode, domain);
     if (!list.length) return;
     run = { mode, domain, list, i: 0, streak: 0, right: 0, perDomain: {}, pages: 0, maxPages: mode === 'shift' ? 3 : Infinity, over: false };
@@ -93,6 +106,7 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
     const item = run.list[run.i];
     const q = store.quiz;
     const order = shuffle(Object.keys(item.options));
+    run.letter = Object.fromEntries(order.map((k, i) => [k, 'ABCD'[i]])); run.order = order; // what the learner sees
     const marked = q.bookmarks.includes(item.id);
     root.innerHTML = `
       <div class="quiz-card" data-qid="${esc(item.id)}">
@@ -110,7 +124,13 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
         <ol class="options" role="list">${order.map((k, i) => `<li><button class="option" data-key="${k}"><span class="opt-key">${'ABCD'[i]}</span><span class="opt-text">${fmt(item.options[k])}</span></button><div class="opt-why" hidden></div></li>`).join('')}</ol>
         <div class="quiz-after" hidden></div>
         <p class="fine kbd-hint">Keys 1–4 choose · Enter continues</p>
+        <section class="tutor" aria-label="Ask Patch about this question">
+          <h4 class="tutor-h">Ask Patch about this question</h4>
+          <form class="tutor-bar" autocomplete="off"><label class="sr-only" for="tutor-input">Your question for Patch</label><textarea id="tutor-input" rows="1" maxlength="2000" placeholder="Stuck? Ask for a hint. Answered? Ask why, or keep asking follow-ups…"></textarea><button type="submit" class="btn primary tutor-send">Ask</button></form>
+          <div class="tutor-mount"></div>
+        </section>
       </div>`;
+    mountTutor(item);
     root.querySelector('.end-run').addEventListener('click', () => { run.i = Math.max(run.i, 0); results(); });
     const bm = root.querySelector('.bm');
     bm.addEventListener('click', () => {
@@ -122,6 +142,7 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
     buttons.forEach((b) => b.addEventListener('click', () => answer(item, b.dataset.key, buttons)));
     buttons[0].focus({ preventScroll: true });
     root.onkeydown = (e) => {
+      if (e.target.closest?.('textarea, input')) return; // typing to Patch must not answer the question
       if (/^[1-4]$/.test(e.key) && !root.querySelector('.option[disabled]')) { buttons[+e.key - 1]?.click(); }
       if (e.key === 'Enter' && root.querySelector('.next')) { e.preventDefault(); root.querySelector('.next').click(); }
     };
@@ -140,6 +161,7 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
     q.streakBest = Math.max(q.streakBest || 0, run.streak);
     store.saveQuiz(q);
     const pd = (run.perDomain[item.domain] ||= { ok: 0, n: 0 }); pd.n++; if (correct) pd.ok++;
+    if (run.mode === 'all') { q.full = { ...(q.full || {}), order: run.list.map((x) => x.id), i: run.i + 1, right: run.right, perDomain: run.perDomain }; store.saveQuiz(q); }
     onXp?.(correct ? 10 + Math.min(run.streak, 5) * 2 : 2);
     buttons.forEach((b) => {
       b.disabled = true;
@@ -156,16 +178,19 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
     const showObjective = objTail && !shownRationale.includes(norm(objTail)) && !norm(reason).includes(norm(objTail));
     const after = root.querySelector('.quiz-after'); after.hidden = false;
     after.innerHTML = `
-      <p class="verdict ${correct ? 'ok' : 'bad'}">${correct ? 'Correct.' : `Not this time. The keyed answer is ${item.correct_option}.`}</p>
+      <p class="verdict ${correct ? 'ok' : 'bad'}">${correct ? 'Correct.' : `Not this time. The keyed answer is ${run.letter[item.correct_option]}.`}</p>
       ${showReason ? `<p>${fmt(reason)}</p>` : ''}
       ${showObjective ? `<p class="fine"><b>Objective:</b> ${fmt(item.learning_objective)}</p>` : item.learning_objective ? `<p class="fine"><b>Topic:</b> ${esc((item.learning_objective.split(':')[0] || item.topic).trim())}</p>` : ''}
       ${item.sources?.length ? `<p class="fine sources">Check it: ${item.sources.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.title)}</a>`).join(' · ')}</p>` : ''}
-      <div class="row"><button class="btn primary next">${run.over ? 'See the shift report' : run.i < run.list.length - 1 ? 'Next question' : 'See results'}</button><button class="btn ghost ask-q">Ask Patch to explain this</button></div>`;
+      <div class="row"><button class="btn primary next">${run.over ? 'See the shift report' : run.i < run.list.length - 1 ? 'Next question' : 'See results'}</button><button class="btn ghost ask-q">Explain it, Patch</button></div>`;
     after.querySelector('.next').addEventListener('click', () => { run.i++; !run.over && run.i < run.list.length ? show() : results(); });
     after.querySelector('.ask-q').addEventListener('click', () => {
-      const opts = Object.entries(item.options).map(([k, v]) => `${k}) ${v}`).join('\n');
-      onAsk?.(`Practice question (original study material, not an official exam item):\n${item.stem || item.question.split('\n')[0]}\n${opts}\nThe keyed answer is ${item.correct_option}. I chose ${key}${correct ? ' (correct)' : ' (wrong)'}.\nExplain why ${item.correct_option} is the best answer and why ${correct ? 'the other options' : key} fall short, with one concrete example from a real system, and finish with a one-line memory hook for the exam.`);
+      const k = run.letter[item.correct_option], mine = run.letter[key];
+      tutor?.ask(`Explain why ${k} is the best answer and why ${correct ? 'the other options' : mine} fall${correct ? '' : 's'} short, with one concrete example from a real system, and finish with a one-line memory hook for the exam.`);
     });
+    tutor?.setSuggestions(correct
+      ? ['Walk me through every option', 'Give me a real-world example of this', 'Give me a harder variant to try', 'What would change the answer?']
+      : [`Why is ${run.letter[key]} wrong?`, `Why is ${run.letter[item.correct_option]} right?`, 'Give me a real-world example of this', 'Give me a memory hook for this']);
     const r = correct && run.streak >= 3 ? react('streak', run.streak) : react(correct ? 'correct' : 'wrong');
     if (run.mode === 'shift' && !correct) onPatch?.(run.over ? 'facepalm' : 'alarmed', run.over ? 'Third page. The shift is over. Go home; the mistakes pile will still be here.' : `Paged. ${run.maxPages - run.pages} left before the shift ends.`);
     else onPatch?.(r.pose, r.line);
@@ -173,8 +198,22 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
   }
 
   function results() {
-    const pct = Math.round((run.right / run.list.length) * 100);
     const answered = Math.min(run.i, run.list.length);
+    if (run.mode === 'all') {
+      const qq = store.quiz; const finished = answered >= run.list.length; const pctA = answered ? Math.round((run.right / answered) * 100) : 0;
+      if (finished) { qq.full = { done: true, lastScore: pctA, order: [], i: 0 }; store.saveQuiz(qq); onXp?.(100); }
+      root.innerHTML = `
+        <div class="quiz-results">
+          <p class="big-grade">${pctA}%</p><p>${run.right} of ${answered} correct${finished ? ` · full test of ${run.list.length} complete` : ` · ${run.list.length - answered} left. Your place is saved.`}</p>
+          <ul class="mastery">${Object.entries(run.perDomain).sort().map(([d, v]) => `<li class="mastery-row static"><span>${esc(d)} <span class="fine">(${DOMAINS[DOMAIN_MAP[d]] || ''})</span></span><span class="fine">${v.ok}/${v.n} · ${Math.round((v.ok / v.n) * 100)}%</span></li>`).join('')}</ul>
+          <div class="quiz-modes">${finished ? '<button class="btn primary" data-go="mistakes">Review my mistakes</button>' : '<button class="btn primary" data-go="all">Resume the full test</button>'}<button class="btn back">All modes</button></div>
+        </div>`;
+      root.querySelector('[data-go]')?.addEventListener('click', (e) => start(e.target.dataset.go));
+      root.querySelector('.back').addEventListener('click', home);
+      onPatch?.(pctA >= 80 ? 'delighted' : 'neutral', finished ? `Full bank done at ${pctA}%. ${pctA >= 80 ? 'That is exam shape.' : 'The mistakes pile is your study plan now.'}` : 'Paused. I wrote your place on the clipboard.');
+      return;
+    }
+    const pct = Math.round((run.right / run.list.length) * 100);
     if (run.mode === 'shift') { const q = store.quiz; q.shiftBest = Math.max(q.shiftBest || 0, answered - run.pages); store.saveQuiz(q); if (!run.over) onXp?.(40); }
     root.innerHTML = `
       <div class="quiz-results">
@@ -187,13 +226,28 @@ export function mountQuiz(root, { bank, onPatch, onXp, onAsk }) {
     onPatch?.(pct >= 80 ? 'delighted' : pct >= 60 ? 'smug' : 'neutral', pct >= 80 ? 'That run would pass a code review. Possibly two.' : pct >= 60 ? 'Respectable. The mistakes pile is now your study plan.' : 'Rough night. Review the mistakes; that is what they are for.');
   }
 
+  // One tutor thread per question: follow-ups keep the question and the earlier answers in view.
+  let tutor = null;
+  function mountTutor(item) {
+    const sec = root.querySelector('.tutor');
+    tutor = mountAsk(sec.querySelector('.tutor-mount'), {
+      input: sec.querySelector('textarea'), sendBtn: sec.querySelector('.tutor-send'),
+      onPatch: (p, l, o) => onPatch?.(p, l, o),
+      getContext: () => `studio section: Questions. ${current()}`,
+    });
+    sec.querySelector('form').addEventListener('submit', (e) => e.preventDefault());
+    tutor.setSuggestions(['Give me a hint without revealing the answer', 'What concept is this question testing?', 'Explain the key terms in this question']);
+  }
+
   home();
   // What Patch can see when the learner asks from the ask bar mid-question.
   function current() {
     if (!run || run.i >= run.list.length) return '';
     const item = run.list[run.i]; const stem = (item.stem || item.question.split('\n')[0]).slice(0, 260);
-    const opts = Object.entries(item.options).map(([k, v]) => `${k}) ${String(v).slice(0, 90)}`).join(' ');
-    return `practice question ${item.id} (${item.domain}): "${stem}" options: ${opts}. Keyed answer ${item.correct_option}${run.lastChoice && root.querySelector('.option[disabled]') ? `; learner chose ${run.lastChoice}` : '; not answered yet (do not reveal the answer unless asked)'}.`;
+    const L = run.letter || {}; const keys = run.order || Object.keys(item.options);
+    const opts = keys.map((k) => `${L[k] || k}) ${String(item.options[k]).slice(0, 110)}`).join(' ');
+    const answered = run.lastChoice && root.querySelector('.option[disabled]');
+    return `practice question ${item.id} (${item.domain}), options as the learner sees them: "${stem}" ${opts}. ${answered ? `Keyed answer ${L[item.correct_option]}; learner chose ${L[run.lastChoice]} (${run.lastChoice === item.correct_option ? 'correct' : 'wrong'}).` : `The learner has NOT answered yet: give hints and teach the concept, but do not reveal or hint at which letter is correct. (Keyed answer for your reference only: ${L[item.correct_option]}.)`}`;
   }
   return { home, start, current, inRun: () => !!run && run.i < run.list.length };
 }

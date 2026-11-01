@@ -431,8 +431,7 @@ async function quizOpen() {
   const root = $('#view-quiz'); root.innerHTML = '<p class="fine">Loading the question bank…</p>';
   try {
     const bank = await loadBank(); quizMounted = true;
-    quizApi = mountQuiz(root, { bank, onPatch: (p, l) => patch.say(p, l), onXp: addXp,
-      onAsk: (text) => askPatch(text, { force: true }) });
+    quizApi = mountQuiz(root, { bank, onPatch: (p, l, o) => patch.say(p, l, o), onXp: addXp });
   } catch (e) { root.innerHTML = `<p class="error-line">${esc(e.message)} Start the preview server with a bank file (README).</p>`; }
 }
 

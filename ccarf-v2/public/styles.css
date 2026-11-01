@@ -377,3 +377,12 @@ h2 { font: 700 1.3rem/1.2 var(--display); margin: 0; }
 .stale-bar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 8px 14px; background: var(--hazard); color: var(--ink); font-weight: 700; }
 .stale-bar .fine { color: var(--ink-2); font-weight: 400; }
 .error-line a { color: inherit; font-weight: 700; }
+
+/* inline tutor under each question */
+.tutor { margin-top: 18px; padding: 12px 14px; background: var(--paper-2); border: 1px solid var(--paper-line); border-left: 4px solid var(--safety); border-radius: var(--r-m); }
+.tutor-h { margin: 0 0 8px; font: 700 1rem var(--display); color: var(--safety-deep); }
+.tutor-bar { display: flex; gap: 8px; align-items: flex-end; }
+.tutor-bar textarea { flex: 1; min-width: 0; background: #fff; color: var(--ink); border: 1px solid var(--paper-line); border-radius: var(--r-s); padding: 8px 10px; font: inherit; resize: none; max-height: 140px; }
+.tutor-bar .btn { white-space: nowrap; }
+.tutor .ask { margin-top: 8px; } .tutor .ask-log:empty { display: none; } .tutor .ask-note { display: none; }
+.tutor .msg.assistant { background: #fffaf0; }

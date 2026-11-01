@@ -78,6 +78,14 @@ Requested: "the AI tutor as an AI-first website for the entire site". Implemente
 - `ccarf2-fix.cmd` then stopped the processes whose command line ends in `server.mjs`. That hit the studio's old node **and three OpenAI Codex computer-use helper processes** (`cua_node\…\node.exe ./server.mjs`). The api.perfectai.tech service (`perfectai-api\server.mjs`) was not touched. Codex restarts its helpers on demand; if a Codex session was open it may need to be restarted. The installer now stops only the node whose parent is the studio's own `run.cmd` loop (see deploy/README.md).
 - Live after the fix: `/api/health` → version 2.1.4, maxTokens 2200, keepWarm "warm"; `/js/app.js` and `/` serve the AI-first build.
 
+## v2.1.4 follow-up (15:30): full test, inline tutor, network errors
+
+- Full test mode: all 200 questions once, resumable (`store.quiz.full`), per-domain breakdown at the end; 100 XP on completion.
+- Inline tutor per question (`quiz.js mountTutor`, reusing `mountAsk`): hint chips before answering, why-wrong / why-right / example / memory-hook chips after; context switches from "NOT answered yet, do not reveal" to "learner chose X". Digits typed into the tutor box no longer answer the question.
+- Bug fixed: options are shuffled and relabelled A–D, but the verdict and the Patch prompt used the bank's original letter, so "The keyed answer is C" could point at the wrong option. Both now use the on-screen letter.
+- Ask Patch: a request that fails at the network level is retried once automatically; a second failure shows "Could not reach the studio server" plus, off-localhost, the hint to use http://localhost:8790 on the host PC. A tab running an older build shows a "newer version is live · Reload" bar.
+- Tests: tests/e2e_tutor.py and tests/e2e_network.py (desktop + mobile), plus the existing suites, all clean.
+
 ## Not done
 
 No model comparison (4B vs 8B), no checkpoint-lineage check, no training. Rated answers now accumulate in `data/feedback.jsonl` as reviewable candidates for a future, properly licensed fine-tuning run.
