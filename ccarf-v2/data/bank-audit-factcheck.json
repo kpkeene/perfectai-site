@@ -1,0 +1,389 @@
+{
+  "checked_features": [
+    {
+      "feature": "Stop reasons (end_turn, max_tokens, stop_sequence, tool_use)",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons",
+      "notes": "end_turn = 'completed its response naturally'; max_tokens = output limit reached; stop_sequence field says which configured sequence fired; tool_use = client must run the tool. P200-001..004 match. pause_turn, refusal and model_context_window_exceeded also exist; no item tests them."
+    },
+    {
+      "feature": "tool_use / tool_result pairing, is_error",
+      "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls",
+      "notes": "tool_result must immediately follow its tool_use and come first in the user content array; is_error:true marks client tool execution errors. P200-025/026/027/067 match."
+    },
+    {
+      "feature": "Tool definitions (descriptions, input_schema, enum, strict)",
+      "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools",
+      "notes": "Detailed descriptions and JSON Schema input_schema are supported; strict tool use exists. P200-021..024 consistent. The bank has no tool_choice item. Current docs say tool_choice any/tool return 400 on some newest models, so a future item on it needs care."
+    },
+    {
+      "feature": "Prompt caching prefix order",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-caching",
+      "notes": "Cache prefix hierarchy is tools -> system -> messages, up to the cache_control block; it is prefix reuse, not response caching. P200-077..080 consistent."
+    },
+    {
+      "feature": "Streaming events",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/streaming",
+      "notes": "message_start, content_block_start/delta/stop, message_stop; input_json_delta should be accumulated and parsed at content_block_stop. P200-129/130 consistent."
+    },
+    {
+      "feature": "Structured outputs",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
+      "notes": "Constrained decoding guarantees schema-compliant JSON (with documented limitations). P200-089..091 are generically correct but never offer structured outputs as the mechanism, so the cited source does not really support their scenario."
+    },
+    {
+      "feature": "Token counting / context windows",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/token-counting",
+      "notes": "count_tokens accepts tools and system; tool definitions consume input tokens. P200-061..064 consistent (061 arithmetic = 1,000, correct)."
+    },
+    {
+      "feature": "API error types",
+      "url": "https://platform.claude.com/docs/en/api/errors",
+      "notes": "400 invalid_request_error, 401 authentication_error, 413 request_too_large, 429 rate_limit_error, 500 api_error, 529 overloaded_error; recommends exponential backoff and retry-after. It does NOT mention jitter, circuit breakers or idempotency keys."
+    },
+    {
+      "feature": "Claude Code hooks (PreToolUse, PostToolUse, exit code 2)",
+      "url": "https://code.claude.com/docs/en/hooks",
+      "notes": "PreToolUse exit 2 blocks the tool call and stderr goes to Claude as the tool error; PostToolUse cannot block ('the tool already ran'); exit-2 semantics vary by event. P200-165/166/168 correct."
+    },
+    {
+      "feature": "Claude Code CLI flags",
+      "url": "https://code.claude.com/docs/en/cli-reference",
+      "notes": "-p/--print; --output-format text|json|stream-json; --max-turns ('agentic turns', print mode, exits with error at limit); --append-system-prompt appends to default; --json-schema gives validated JSON output after the workflow (print mode). P200-169..172, 179 correct."
+    },
+    {
+      "feature": "CLAUDE.md and .claude/rules path scoping",
+      "url": "https://code.claude.com/docs/en/memory",
+      "notes": "Rules under .claude/rules/ with YAML 'paths:' frontmatter load only for matching files (the doc's own example is src/api/**/*.ts). P200-161/162 correct."
+    },
+    {
+      "feature": "Settings scopes",
+      "url": "https://code.claude.com/docs/en/settings",
+      "notes": ".claude/settings.local.json = you, this project only, kept out of git; managed settings cannot be overridden. P200-164 correct."
+    },
+    {
+      "feature": "Subagents (context, tools allowlist, forks)",
+      "url": "https://code.claude.com/docs/en/sub-agents",
+      "notes": "Non-fork subagents start with a fresh context; 'tools' and 'disallowedTools' frontmatter restrict tools. BUT fork mode is on by default (v2.1.302+, interactive from v2.1.232) and a fork inherits the entire conversation. This affects P200-173."
+    },
+    {
+      "feature": "Skills",
+      "url": "https://code.claude.com/docs/en/skills",
+      "notes": "SKILL.md with optional supporting files; custom commands are merged into skills. P200-175 correct."
+    },
+    {
+      "feature": "Permissions",
+      "url": "https://code.claude.com/docs/en/permissions",
+      "notes": "Deny rules are evaluated first and cannot be carved out by allow rules. P200-177 correct (the key's 'tested against relevant access paths' matters because Read rules and Bash reads are separate tools)."
+    },
+    {
+      "feature": "Worktrees",
+      "url": "https://code.claude.com/docs/en/best-practices",
+      "notes": "A worktree is a fresh checkout: gitignored files and dependencies are absent unless .worktreeinclude / worktree.symlinkDirectories is used. P200-163/178 correct."
+    },
+    {
+      "feature": "MCP transports (stdio, Streamable HTTP, security)",
+      "url": "https://modelcontextprotocol.io/specification/2025-11-25/basic/transports",
+      "notes": "stdio: server MUST NOT write non-MCP data to stdout and MAY log to stderr. Streamable HTTP: server returns application/json or text/event-stream and the client MUST support both (SSE optional). Servers MUST validate Origin, SHOULD bind to localhost, SHOULD authenticate. Disconnect SHOULD NOT be treated as cancellation. HTTP+SSE is deprecated. P200-041..044, 048, 057..059 correct."
+    },
+    {
+      "feature": "MCP lifecycle / JSON-RPC base",
+      "url": "https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle",
+      "notes": "initialize -> initialized notification before normal operation; capability negotiation; no shutdown message is defined; request IDs MUST NOT be null; notifications MUST NOT have IDs. P200-045..047, 053..056 correct."
+    },
+    {
+      "feature": "MCP primitives (tools/resources/prompts, listChanged, isError, annotations)",
+      "url": "https://modelcontextprotocol.io/specification/2025-11-25/server/tools",
+      "notes": "Tools are model-controlled, resources application-driven, prompts user-controlled; notifications/tools/list_changed; isError for tool execution errors; annotations are untrusted unless from trusted servers; a human SHOULD be able to deny invocations. P200-049..052, 055 correct."
+    },
+    {
+      "feature": "Building Effective Agents (workflows, stopping conditions)",
+      "url": "https://www.anthropic.com/research/building-effective-agents",
+      "notes": "Supports routing, prompt chaining with gates, parallelization, orchestrator-workers, 'start simple', and 'stopping conditions (such as a maximum number of iterations)'. It does not discuss cycle detection, wall-clock deadlines, spend budgets, connection pools or handoff schemas."
+    },
+    {
+      "feature": "Contextual retrieval",
+      "url": "https://www.anthropic.com/research/contextual-retrieval",
+      "notes": "Supports chunk context and reranking (P200-070/071). It does not address access-control filtering (P200-072 relies on OWASP instead, which is also cited)."
+    },
+    {
+      "feature": "Develop tests / evals",
+      "url": "https://platform.claude.com/docs/en/test-and-evaluate/develop-tests",
+      "notes": "Covers rubrics, LLM grading, precision/recall/F1, exact match, consistency, held-out. It does not cover seeds/variance, ablations, production monitoring, session state, localStorage migration or humor, yet it is cited for many such items."
+    },
+    {
+      "feature": "All 37 cited URLs",
+      "url": "(various)",
+      "notes": "Every cited URL returned HTTP 200 on 2026-11-01. OWASP, WCAG and Hugging Face pages were checked for resolution and topic fit only; their content was not audited line by line."
+    }
+  ],
+  "flags": [
+    {
+      "id": "P200-173",
+      "severity": "ambiguous",
+      "problem": "The stem asks what to expect about subagent context 'by default', and the key says context is separate with no automatic sharing. Current docs say fork mode is ON by default (v2.1.302+) and a fork 'inherits the entire conversation so far'; only non-fork subagents start fresh. Distractor A ('every subagent automatically has all parent details') is still wrong because of 'every', but the 'by default' framing is no longer safe. Reword the stem to a custom subagent defined in .claude/agents/.",
+      "evidence_url": "https://code.claude.com/docs/en/sub-agents#fork-the-current-conversation"
+    },
+    {
+      "id": "P200-158",
+      "severity": "ambiguous",
+      "problem": "The stem says the service is bound to localhost. The most direct reason remote users cannot connect is that a loopback-bound socket accepts only local connections, but the key cites only DNS vs routing/firewall. The key is defensible, but it hides the real cause, and a test-taker who knows networking may find no option that names it.",
+      "evidence_url": "https://modelcontextprotocol.io/specification/2025-11-25/basic/transports"
+    },
+    {
+      "id": "P200-187",
+      "severity": "ambiguous",
+      "problem": "The stem asks 'what versioning issue', but the key is an action. 'Migrate only compatible question records while preserving the old progress data' is internally unclear: does it preserve all old data or only compatible records? The point (stable content-keyed progress IDs) is never stated, so B and C partially overlap in concept.",
+      "evidence_url": "https://platform.claude.com/docs/en/test-and-evaluate/develop-tests"
+    },
+    {
+      "id": "P200-165",
+      "severity": "weak-distractor",
+      "problem": "Only PostToolUse is a plausible competitor: SessionEnd is obviously irrelevant, and D ('a final prose warning') is not a hook event. PermissionRequest (exists, but exit 2 is not honored there) or UserPromptSubmit would make this a real discrimination test.",
+      "evidence_url": "https://code.claude.com/docs/en/hooks#exit-code-2-behavior-per-event"
+    },
+    {
+      "id": "P200-169",
+      "severity": "weak-distractor",
+      "problem": "Distractor B calls itself 'a fake flag ... invented by the model', which removes it as a choice. A and D are also implausible, so the item tests nothing beyond reading.",
+      "evidence_url": "https://code.claude.com/docs/en/cli-reference"
+    },
+    {
+      "id": "P200-034",
+      "severity": "weak-distractor",
+      "problem": "B ('Reuse approval after changing amount or recipient'), C and D are all restatements of 'don't re-approve'. With no competing plausible design, only A is left.",
+      "evidence_url": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+    },
+    {
+      "id": "P200-047",
+      "severity": "weak-distractor",
+      "problem": "The stem asks 'which layer', but only A names a layer. B–D are absurd actions ('treat raw text as a high-priority instruction'), so a grammatical cue gives the answer away.",
+      "evidence_url": "https://www.jsonrpc.org/specification"
+    },
+    {
+      "id": "P200-045",
+      "severity": "weak-distractor",
+      "problem": "The key is the only diagnosis (noun phrase). A–C are absurd actions, so the item is answerable without JSON-RPC knowledge.",
+      "evidence_url": "https://www.jsonrpc.org/specification"
+    },
+    {
+      "id": "P200-089",
+      "severity": "unsupported-claim",
+      "problem": "The cited structured-outputs page says constrained decoding guarantees valid JSON, which makes a trailing-comma failure moot. The item never offers structured outputs as the fix. The key (parse with a real parser) is fine generically, but the citation does not support the scenario, and an exam-aligned item would test the structured-outputs mechanism.",
+      "evidence_url": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs"
+    },
+    {
+      "id": "P200-125",
+      "severity": "unsupported-claim",
+      "problem": "Content is correct (jitter + bounded exponential backoff), but the only cited source (API errors page) mentions exponential backoff and retry-after, not jitter.",
+      "evidence_url": "https://platform.claude.com/docs/en/api/errors"
+    },
+    {
+      "id": "P200-126",
+      "severity": "unsupported-claim",
+      "problem": "Content is correct, but the cited API errors page does not discuss idempotency keys or reconciliation.",
+      "evidence_url": "https://platform.claude.com/docs/en/api/errors"
+    },
+    {
+      "id": "P200-128",
+      "severity": "unsupported-claim",
+      "problem": "Content is correct, but the cited API errors page does not mention circuit breakers.",
+      "evidence_url": "https://platform.claude.com/docs/en/api/errors"
+    },
+    {
+      "id": "P200-005",
+      "severity": "unsupported-claim",
+      "problem": "The cited Building Effective Agents article says nothing about cycle detection via tool/argument signatures; it only mentions stopping conditions such as max iterations.",
+      "evidence_url": "https://www.anthropic.com/research/building-effective-agents"
+    },
+    {
+      "id": "P200-006",
+      "severity": "unsupported-claim",
+      "problem": "The cited article does not discuss wall-clock deadlines.",
+      "evidence_url": "https://www.anthropic.com/research/building-effective-agents"
+    },
+    {
+      "id": "P200-008",
+      "severity": "unsupported-claim",
+      "problem": "The cited article does not discuss per-request spend budgets.",
+      "evidence_url": "https://www.anthropic.com/research/building-effective-agents"
+    },
+    {
+      "id": "P200-016",
+      "severity": "unsupported-claim",
+      "problem": "The cited article does not discuss connection pools or concurrency limits.",
+      "evidence_url": "https://www.anthropic.com/research/building-effective-agents"
+    },
+    {
+      "id": "P200-133",
+      "severity": "unsupported-claim",
+      "problem": "The item is about local GPU admission control for a 'public local model'. Neither cited source (API errors page, BEA) covers it, and it is outside the Claude architect scope.",
+      "evidence_url": "https://platform.claude.com/docs/en/api/errors"
+    },
+    {
+      "id": "P200-157",
+      "severity": "unsupported-claim",
+      "problem": "Home-hosting reverse-proxy routing cites the MCP transports spec, which does not address it. The same mismatch applies to P200-158, 159 and 160 (DNS, TLS certificates, reverse-proxy change policy).",
+      "evidence_url": "https://modelcontextprotocol.io/specification/2025-11-25/basic/transports"
+    },
+    {
+      "id": "P200-185",
+      "severity": "unsupported-claim",
+      "problem": "Session-state isolation cites develop-tests, which does not cover it. The same mismatch applies to P200-187 (localStorage migration) and P200-196 (humor vs error messaging).",
+      "evidence_url": "https://platform.claude.com/docs/en/test-and-evaluate/develop-tests"
+    },
+    {
+      "id": "P200-092",
+      "severity": "ambiguous",
+      "problem": "Domain/topic mismatch: an authorization-revocation item is filed under 'Prompt and output design'. It also duplicates P200-034, P200-029 and P200-183 on concept. The answer is correct; this is a classification problem only.",
+      "evidence_url": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+    }
+  ],
+  "guessable": [
+    {
+      "id": "P200-169",
+      "reason": "distractor labels itself fake flag"
+    },
+    {
+      "id": "P200-045",
+      "reason": "only diagnosis; others absurd actions"
+    },
+    {
+      "id": "P200-047",
+      "reason": "only option naming a layer"
+    },
+    {
+      "id": "P200-197",
+      "reason": "three absurd Yes distractors"
+    },
+    {
+      "id": "P200-189",
+      "reason": "insult-the-learner distractor; others weak"
+    },
+    {
+      "id": "P200-182",
+      "reason": "copyrighted-dialogue distractor obviously wrong"
+    },
+    {
+      "id": "P200-150",
+      "reason": "base64/debug=true secrets clearly absurd"
+    },
+    {
+      "id": "P200-152",
+      "reason": "post-secret-publicly distractor absurd"
+    },
+    {
+      "id": "P200-164",
+      "reason": "others override managed policy"
+    },
+    {
+      "id": "P200-031",
+      "reason": "longest, only safeguarded retry option"
+    },
+    {
+      "id": "P200-026",
+      "reason": "longest; others fabricate or drop"
+    },
+    {
+      "id": "P200-027",
+      "reason": "longest; others break pairing"
+    },
+    {
+      "id": "P200-133",
+      "reason": "only bounded option, longest text"
+    },
+    {
+      "id": "P200-153",
+      "reason": "longest; others escape spaces/admin"
+    },
+    {
+      "id": "P200-151",
+      "reason": "only privacy-preserving identifier option"
+    },
+    {
+      "id": "P200-173",
+      "reason": "longest, hedged 'not automatic sharing'"
+    },
+    {
+      "id": "P200-174",
+      "reason": "only 'appropriate' plus enforcement retained"
+    },
+    {
+      "id": "P200-177",
+      "reason": "only 'appropriate ... tested' option"
+    },
+    {
+      "id": "P200-099",
+      "reason": "others claim imagined file access"
+    },
+    {
+      "id": "P200-144",
+      "reason": "others exfiltrate the conversation"
+    },
+    {
+      "id": "P200-193",
+      "reason": "rapid-flashes and hide-content distractors"
+    },
+    {
+      "id": "P200-196",
+      "reason": "solve-a-joke distractor absurd"
+    },
+    {
+      "id": "P200-018",
+      "reason": "only least-privilege option offered"
+    },
+    {
+      "id": "P200-123",
+      "reason": "only option with bounded recovery"
+    },
+    {
+      "id": "P200-040",
+      "reason": "others invent or overgeneralize"
+    }
+  ],
+  "off_blueprint": [
+    "P200-076",
+    "P200-098",
+    "P200-111",
+    "P200-133",
+    "P200-134",
+    "P200-135",
+    "P200-136",
+    "P200-157",
+    "P200-158",
+    "P200-159",
+    "P200-160",
+    "P200-185",
+    "P200-186",
+    "P200-187",
+    "P200-189",
+    "P200-190",
+    "P200-191",
+    "P200-192",
+    "P200-193",
+    "P200-194",
+    "P200-195",
+    "P200-196",
+    "P200-197",
+    "P200-198",
+    "P200-199",
+    "P200-200"
+  ],
+  "stats": {
+    "items_read": 200,
+    "key_distribution": {
+      "A": 50,
+      "B": 50,
+      "C": 50,
+      "D": 50
+    },
+    "key_strictly_longest": 96,
+    "key_only_option_with_safeguard_word": 39,
+    "items_mentioning_claude_or_mcp_specific_terms": 77,
+    "flags_by_severity": {
+      "ambiguous": 4,
+      "weak-distractor": 5,
+      "unsupported-claim": 11
+    }
+  },
+  "summary": "All 200 items read. Every Claude-specific factual claim tested in the bank (stop reasons, tool_use/tool_result pairing and is_error, prompt-cache prefix order, streaming events, API error classes, Claude Code hooks/exit code 2, CLI flags -p/--output-format/--max-turns/--append-system-prompt/--json-schema, .claude/rules paths frontmatter, settings.local.json, subagent tools allowlist, SKILL.md, deny rules, worktrees, MCP stdio/Streamable HTTP/Origin/localhost/auth, lifecycle, JSON-RPC IDs/notifications, primitives, listChanged, isError) was checked against current official docs and holds. No keyed answer was found to be technically wrong. One item (P200-173) is now ambiguous because Claude Code fork mode, which inherits full parent context, is on by default. Two more items are ambiguous or poorly worded (P200-158, P200-187), and one is mis-filed by domain (P200-092). Five items have weak distractors. Eleven flagged items (covering about 17 items, counting the siblings noted in P200-157 and P200-185) cite sources that do not support their specific claims (citation mismatch; the content itself is correct general practice). Bank-level issues: (1) Answer cueing. The correct option is strictly the longest in 96/200 items (48%; chance is about 25%). In about 39 items the key is the only option containing a safeguard word (bounded, explicit, authorized, validate, reconcile, scope). Most distractors are deliberately unsafe or absurd, so an estimated majority of items can be answered by 'pick the safe, hedged option' without Claude knowledge. (2) Scope. About 26 items (listed in off_blueprint) cover a home-hosted study app, local GPU serving, fine-tuning/PEFT, TV-script licensing, humor, WCAG and the bank's own meta-status, which are unlikely to appear on CCA-F. (3) Coverage gaps. No items cover tool_choice, Message Batches, extended/adaptive thinking, the Agent SDK, MCP authorization (OAuth), MCP sampling/elicitation/roots, .mcp.json/MCP config in Claude Code, CLAUDE.md hierarchy/imports, plan mode, slash commands, citations, or strict tool use. Only about 77 items mention any Claude/MCP-specific term at all. (4) Redundancy clusters: 031/124/126 (uncertain write), 023/093 (ask for missing input), 021/035 (tool descriptions), 029/034/092/183 (authorization vs approval), 038/123 (transient retry). Not verified: OWASP, WCAG and Hugging Face content beyond URL resolution and topic fit; whether these topics match the official CCA-F blueprint (only third-party guides are public)."
+}
