@@ -86,6 +86,13 @@ Requested: "the AI tutor as an AI-first website for the entire site". Implemente
 - Ask Patch: a request that fails at the network level is retried once automatically; a second failure shows "Could not reach the studio server" plus, off-localhost, the hint to use http://localhost:8790 on the host PC. A tab running an older build shows a "newer version is live · Reload" bar.
 - Tests: tests/e2e_tutor.py and tests/e2e_network.py (desktop + mobile), plus the existing suites, all clean.
 
+## v2.2.0 (2026-11-02): Gemini on Vertex AI
+
+- `server.mjs`: `MODEL_PROVIDER=vertex` streams from Vertex AI express mode (native `streamGenerateContent`, key in a header, thought parts dropped, MAX_TOKENS → Continue, safety blocks and HTTP errors as plain text). Bounded concurrency (4 for cloud, 1 for a local GPU). `/api/health` reports `provider` and `keyLoaded`.
+- UI copy follows the provider: footer, Ask drawer note, Settings "Privacy" row now say questions go to Google Vertex AI when it is used. No more "inference runs on your own machine" while it doesn't.
+- Tested against `tests/fake-vertex.mjs` (checks header auth, no key in URL, request shape, thought filtering, truncation, wrong key, 3 concurrent streams without queueing) and the full browser suites on both providers.
+- `deploy/switch-to-vertex.cmd` / `switch-to-local.cmd` for the PC.
+
 ## Not done
 
 No model comparison (4B vs 8B), no checkpoint-lineage check, no training. Rated answers now accumulate in `data/feedback.jsonl` as reviewable candidates for a future, properly licensed fine-tuning run.

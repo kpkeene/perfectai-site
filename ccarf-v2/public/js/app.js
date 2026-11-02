@@ -471,7 +471,7 @@ function mountAskOnce() {
   return askApi;
 }
 
-// What Patch can see. Kept short: the local model has a small context window.
+// What Patch can see. Kept short so it fits small local models as well as cloud ones.
 function askContext() {
   const parts = [`studio section: ${VIEW_NAMES[currentView] || currentView}`];
   if (run) {
@@ -618,6 +618,7 @@ async function settingsOpen() {
       <h3 class="h-sub">About this build</h3>
       <dl class="about">
         <dt>Model</dt><dd>${esc(health?.model || 'unknown')}${health?.demo ? ' (scripted answers only)' : ''}${health ? ` · shared daily budget left: ${health.budgetLeft >= 1e6 ? (health.budgetLeft / 1e6).toFixed(1) + 'M' : Math.round(health.budgetLeft / 1000) + 'k'} characters` : ''}${health?.keepWarm && health.keepWarm !== 'off' ? ` · model kept warm (${esc(health.keepWarm)})` : ''}</dd>
+        <dt>Privacy</dt><dd>${health?.provider === 'vertex' ? 'Your questions to Patch, plus a short note about what is on screen, are sent to Google Vertex AI to generate the answer. Progress, bookmarks and scores stay in this browser.' : 'Your questions to Patch are answered by a model on this server. Progress, bookmarks and scores stay in this browser.'}</dd>
         <dt>Build</dt><dd>Architect Studio v${esc(health?.version || '?')} · ${health?.feedbackCount ?? 0} rated answers saved on this server as candidate training examples</dd>
         <dt>Rendering</dt><dd>${webglOk ? `WebGL raster: shaded plastic, generated environment reflections${s.lowGpu ? ' (off in low-GPU)' : ''}, shadow maps. Not ray tracing.` : 'WebGL unavailable: 2D schematic only.'}</dd>
         <dt>Render cost</dt><dd>${st ? `${st.avgMs} ms average CPU submit time per frame, p95 ${st.p95Ms} ms over ${st.frames} frames (renders only while something moves).` : 'No frames measured yet.'}
@@ -655,10 +656,15 @@ async function settingsOpen() {
 
 // ---------------- boot ----------------
 // Stale-tab check: if the server runs a newer build than this page, offer a reload.
-const BUILD = '2.1.4';
+const BUILD = '2.2.0';
 function checkHealth() {
   return fetch('/api/health', { cache: 'no-store' }).then((r) => r.json()).then((h) => {
     $('#model-pill').textContent = h.model; $('#model-pill').dataset.demo = String(h.demo);
+    window.__provider = h.provider;
+    const where = h.provider === 'vertex' ? 'Questions you ask Patch are sent to Google Vertex AI (Gemini); missions, builder and quiz scoring run in your browser.'
+      : h.provider === 'local' ? 'Patch runs on a model hosted on this server; nothing is sent to a cloud AI service.' : 'Demo mode: Patch shows scripted sample answers.';
+    $('#foot-model').textContent = where;
+    document.querySelectorAll('.where-note').forEach((n) => { n.textContent = h.provider === 'vertex' ? 'questions go to Google Vertex AI (Gemini)' : h.provider === 'local' ? 'answers come from the model on this server, not a cloud API' : 'demo answers only'; });
     if (h.version && h.version !== BUILD && !$('#stale-bar')) {
       const bar = document.createElement('div'); bar.id = 'stale-bar'; bar.className = 'stale-bar'; bar.setAttribute('role', 'status');
       bar.innerHTML = `A newer version of the studio is live (v${esc(h.version)}). <button class="btn small primary" type="button">Reload</button> <span class="fine">Your progress is kept.</span>`;

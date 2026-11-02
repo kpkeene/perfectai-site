@@ -1,6 +1,9 @@
-// Architect Studio v2 — local preview server (no dependencies).
-// Serves the static app, a question bank, and a streaming chat proxy to a LOCAL
-// OpenAI-compatible model server (llama.cpp server, LM Studio, Ollama /v1, vLLM).
+// Architect Studio v2 — preview server (no dependencies).
+// Serves the static app, a question bank, and a streaming chat proxy to either
+//  - a LOCAL OpenAI-compatible model server (llama.cpp server, LM Studio, Ollama /v1, vLLM), or
+//  - Gemini on Google Vertex AI (express-mode API key), with MODEL_PROVIDER=vertex.
+//
+//   MODEL_PROVIDER=vertex VERTEX_KEY_FILE=%USERPROFILE%\.ccarf2\vertex.key VERTEX_MODEL=gemini-3-flash node server.mjs
 // Binds to 127.0.0.1 by default. Nothing here touches Caddy, DNS or the live app.
 //
 //   MODEL_BASE=http://127.0.0.1:8080/v1 MODEL_NAME=qwen3-4b node server.mjs
@@ -16,17 +19,26 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.join(__dirname, 'public');
 const HOST = process.env.HOST || '127.0.0.1';
 const PORT = Number(process.env.PORT || 8790);
-const MODEL_BASE = (process.env.MODEL_BASE || '').replace(/\/$/, '');
-const MODEL_NAME = process.env.MODEL_NAME || 'local-model';
-const MODEL_LABEL = process.env.MODEL_LABEL || (MODEL_BASE ? `Local ${MODEL_NAME}` : 'Demo mode · no model connected');
+const PROVIDER = (process.env.MODEL_PROVIDER || (process.env.MODEL_BASE ? 'openai' : 'demo')).toLowerCase();
+const VERTEX_BASE = (process.env.VERTEX_BASE || 'https://aiplatform.googleapis.com/v1').replace(/\/$/, '');
+const VERTEX_KEY_FILE = process.env.VERTEX_KEY_FILE || '';
+function readSecretFile(f) { try { return f ? fs.readFileSync(f, 'utf8').trim() : ''; } catch { return ''; } }
+const VERTEX_KEY = process.env.VERTEX_KEY || readSecretFile(VERTEX_KEY_FILE);
+const VERTEX_MODEL = process.env.VERTEX_MODEL || readSecretFile(VERTEX_KEY_FILE && VERTEX_KEY_FILE.replace(/\.key$/, '.model')) || 'gemini-3-flash';
+const IS_VERTEX = PROVIDER === 'vertex';
+const MODEL_BASE = IS_VERTEX ? 'vertex' : (process.env.MODEL_BASE || '').replace(/\/$/, '');
+const MODEL_NAME = IS_VERTEX ? VERTEX_MODEL : process.env.MODEL_NAME || 'local-model';
+const MODEL_LABEL = process.env.MODEL_LABEL || (IS_VERTEX ? `Gemini (${VERTEX_MODEL}) on Google Vertex AI` : MODEL_BASE ? `Local ${MODEL_NAME}` : 'Demo mode · no model connected');
 const MODEL_KEY = process.env.MODEL_KEY || ''; // only if your local server requires one
 const NO_THINK = process.env.NO_THINK !== '0'; // Qwen3: suppress thinking blocks by default
-const MAX_TOKENS = Math.min(Number(process.env.MAX_TOKENS || 1400), 2400);
+const MAX_TOKENS = Math.min(Number(process.env.MAX_TOKENS || (IS_VERTEX ? 4096 : 1400)), IS_VERTEX ? 8192 : 2400);
+// Cloud answers can run side by side; a local GPU gets one at a time.
+const CONCURRENCY = Math.max(1, Number(process.env.CONCURRENCY || (IS_VERTEX ? 4 : 1)));
 const MAX_INPUT = 4000;
 const MAX_HISTORY = 8;
 const QUESTIONS_FILE = process.env.QUESTIONS_FILE || path.join(__dirname, 'data', 'questions.json');
 const QUESTIONS_URL = process.env.QUESTIONS_URL || '';
-const VERSION = '2.1.4';
+const VERSION = '2.2.0';
 const TRUST_PROXY = process.env.TRUST_PROXY === '1';           // set when behind Caddy so rate limits see the real client IP
 const ACCESS_CODE = process.env.ACCESS_CODE || '';             // optional: chat requires this code (entered once in the UI)
 const DAILY_CHAR_BUDGET = Number(process.env.DAILY_CHAR_BUDGET || 1_500_000); // generated characters per UTC day across all users
@@ -43,7 +55,7 @@ const MIME = {
 
 // ---- keep the Ollama model loaded so the first question after a quiet spell is not a 60 s cold start ----
 const OLLAMA_NATIVE = MODEL_BASE.replace(/\/v1\/?$/, '');
-const KEEP_WARM = process.env.KEEP_WARM !== '0' && /:11434(\/|$)/.test(MODEL_BASE);
+const KEEP_WARM = !IS_VERTEX && process.env.KEEP_WARM !== '0' && /:11434(\/|$)/.test(MODEL_BASE);
 let warmState = 'off';
 async function warmModel() {
   try {
@@ -53,14 +65,15 @@ async function warmModel() {
 }
 if (KEEP_WARM) { warmModel(); setInterval(warmModel, 15 * 60 * 1000).unref(); }
 
-// ---- single-flight queue: one model response at a time (protects a 24 GB GPU) ----
-let busy = false;
+// ---- bounded queue: CONCURRENCY responses at a time (1 protects a local 24 GB GPU) ----
+let running = 0;
 const waiters = [];
+const isBusy = () => running >= CONCURRENCY;
 function acquire() {
-  if (!busy) { busy = true; return Promise.resolve(); }
+  if (running < CONCURRENCY) { running++; return Promise.resolve(); }
   return new Promise((res) => waiters.push(res));
 }
-function release() { const next = waiters.shift(); if (next) next(); else busy = false; }
+function release() { const next = waiters.shift(); if (next) next(); else running = Math.max(0, running - 1); }
 
 // ---- simple per-IP rate limit + global daily budget ----
 const hits = new Map();
@@ -162,7 +175,7 @@ async function handleChat(req, res) {
   let closed = false;
   res.on('close', () => { closed = true; ac.abort(); });
 
-  const queued = busy;
+  const queued = isBusy();
   if (queued) emit('status', { state: 'queued' });
   await acquire();
   if (closed) { release(); return; }
@@ -174,6 +187,12 @@ async function handleChat(req, res) {
       for await (const piece of demoStream(messages[messages.length - 1].content, ac.signal)) {
         if (!firstTokenAt) firstTokenAt = Date.now();
         chars += piece.length; emit('token', { t: piece });
+      }
+    } else if (IS_VERTEX) {
+      const sys = buildSystemPrompt({ context, noThink: false });
+      for await (const ev of vertexStream(sys, messages, ac.signal)) {
+        if (ev.truncated) { emit('status', { state: 'truncated' }); continue; }
+        if (!firstTokenAt) firstTokenAt = Date.now(); chars += ev.text.length; emit('token', { t: ev.text });
       }
     } else {
       const sys = buildSystemPrompt({ context, noThink: NO_THINK });
@@ -211,6 +230,45 @@ async function handleChat(req, res) {
   } finally {
     release();
     if (!closed) res.end();
+  }
+}
+
+// ---- Gemini on Vertex AI (express mode): native streamGenerateContent over SSE ----
+// The key goes in the x-goog-api-key header, never in a URL or a log line.
+async function* vertexStream(system, messages, signal) {
+  if (!VERTEX_KEY) throw new Error('no Vertex API key configured on the server');
+  const url = `${VERTEX_BASE}/publishers/google/models/${encodeURIComponent(VERTEX_MODEL)}:streamGenerateContent?alt=sse`;
+  const upstream = await fetch(url, {
+    method: 'POST', signal,
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': VERTEX_KEY },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: system }] },
+      contents: messages.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+      generationConfig: { maxOutputTokens: MAX_TOKENS, temperature: 0.6, topP: 0.9 },
+    }),
+  });
+  if (!upstream.ok || !upstream.body) {
+    let detail = ''; try { const j = await upstream.json(); detail = j?.error?.status || j?.[0]?.error?.status || ''; } catch {}
+    const why = { 429: 'the cloud quota is used up for now; try again in a minute', 401: 'the API key was rejected', 403: 'the API key is not allowed to use this model', 404: `model "${VERTEX_MODEL}" was not found` }[upstream.status] || `Vertex AI answered ${upstream.status}`;
+    throw new Error(`${why}${detail ? ` (${detail})` : ''}`);
+  }
+  const decoder = new TextDecoder(); let pending = '';
+  for await (const chunk of upstream.body) {
+    pending += decoder.decode(chunk, { stream: true });
+    let nl;
+    while ((nl = pending.indexOf('\n')) !== -1) {
+      const line = pending.slice(0, nl).trim(); pending = pending.slice(nl + 1);
+      if (!line.startsWith('data:')) continue;
+      let j; try { j = JSON.parse(line.slice(5).trim()); } catch { continue; }
+      const cand = j.candidates?.[0];
+      for (const part of cand?.content?.parts || []) {
+        if (part.thought) continue; // thinking summaries are never shown as the answer
+        if (typeof part.text === 'string' && part.text) yield { text: part.text };
+      }
+      if (cand?.finishReason === 'MAX_TOKENS') yield { truncated: true };
+      if (cand?.finishReason && /SAFETY|BLOCKLIST|PROHIBITED/.test(cand.finishReason)) throw new Error('the answer was blocked by the provider\'s safety filter; try rephrasing');
+      if (j.promptFeedback?.blockReason) throw new Error('the question was blocked by the provider\'s safety filter; try rephrasing');
+    }
   }
 }
 
@@ -278,7 +336,7 @@ function serveStatic(req, res) {
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x');
-    if (url.pathname === '/api/health') { rollDay(); return send(res, 200, { ok: true, version: VERSION, model: MODEL_LABEL, demo: !MODEL_BASE, busy, queued: waiters.length, maxTokens: MAX_TOKENS, keepWarm: KEEP_WARM ? warmState : 'off', needsCode: !!ACCESS_CODE, budgetLeft: Math.max(0, DAILY_CHAR_BUDGET - daily.chars), feedbackCount: countFeedback() }); }
+    if (url.pathname === '/api/health') { rollDay(); return send(res, 200, { ok: true, version: VERSION, model: MODEL_LABEL, demo: !MODEL_BASE, provider: IS_VERTEX ? 'vertex' : MODEL_BASE ? 'local' : 'demo', keyLoaded: IS_VERTEX ? !!VERTEX_KEY : undefined, busy: isBusy(), queued: waiters.length, maxTokens: MAX_TOKENS, keepWarm: KEEP_WARM ? warmState : 'off', needsCode: !!ACCESS_CODE, budgetLeft: Math.max(0, DAILY_CHAR_BUDGET - daily.chars), feedbackCount: countFeedback() }); }
     if (url.pathname === '/api/feedback' && req.method === 'POST') return handleFeedback(req, res);
     if (url.pathname === '/api/questions' && req.method === 'GET') {
       const q = await loadQuestions();

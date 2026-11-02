@@ -40,7 +40,7 @@ export const QUIPS = {
   queued: [
     'Someone else is using the brain. I have been asked to hold, like a valve.',
     'Queue position: soon. Mood: load-bearing.',
-    'The GPU is busy. I am pretending this was a design decision.',
+    'The model is busy. I am pretending this was a design decision.',
   ],
   start: [
     'Opening the incident binder. It is mostly coffee rings.',
@@ -52,7 +52,7 @@ export const QUIPS = {
   stream: [
     'Every token is load-bearing. Some more than others.',
     'If this answer had a stop_reason, it would be "not yet".',
-    'I am typing as fast as a 24 gigabyte card allows.',
+    'I am typing as fast as the model allows. The model is unbothered.',
     'Somewhere a retry loop is still running from 2019. Not ours.',
     'Nobody panic. This is a controlled explanation.',
     'I would bookmark this part. I would also bookmark the exit.',

@@ -1,4 +1,4 @@
-// Ask Patch: streams answers from the local model. Commentary quips run in a
+// Ask Patch: streams answers from the configured model (local or Vertex AI). Commentary quips run in a
 // separate bubble and are never part of the answer or presented as reasoning.
 import { pickQuip, TOPIC_PATTERNS } from './persona.js';
 
@@ -72,7 +72,7 @@ export function mountAsk(root, { input, sendBtn, onSubmit, onPatch, onTopic, onS
     <div class="ask">
       <div class="ask-log" aria-live="polite" aria-relevant="additions"></div>
       <div class="ask-suggest" aria-label="Suggestions"></div>
-      <p class="fine ask-note">Enter sends · Shift+Enter new line · answers come from the model running on this server, not a cloud API. Patch's commentary is never the answer.</p>
+      <p class="fine ask-note">Enter sends · Shift+Enter new line · <span class="where-note">answers come from the model named at the top right</span>. Patch's commentary is never the answer.</p>
     </div>`;
   const log = root.querySelector('.ask-log'); const suggest = root.querySelector('.ask-suggest');
   const sendLabel = sendBtn.textContent;
@@ -112,7 +112,7 @@ export function mountAsk(root, { input, sendBtn, onSubmit, onPatch, onTopic, onS
       const w = ans.querySelector('.wait-line'); if (!w) { clearInterval(waitTimer); return; }
       if (w.classList.contains('queued')) return;
       const s = Math.round((performance.now() - waitStart) / 1000);
-      w.textContent = s < 8 ? 'Waiting for the model…' : `Waiting for the model… ${s} s. After a quiet spell the first answer can take up to a minute while the model loads into the GPU.`;
+      w.textContent = s < 8 ? 'Waiting for the model…' : `Waiting for the model… ${s} s. ${window.__provider === 'vertex' ? 'The cloud model is slower than usual; it usually recovers on its own.' : 'After a quiet spell the first answer can take up to a minute while the model loads into the GPU.'}`;
     }, 1000);
     controller = new AbortController(); setBusy(true);
     let retrying = false; let acc = ''; const seenTopics = new Set(); let lastRender = 0; let failed = null; let demo = false; let truncated = false; let cancelledFlag = false;

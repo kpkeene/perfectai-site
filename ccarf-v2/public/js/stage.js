@@ -374,7 +374,7 @@ export class Stage {
   }
 
   // Continuous-render benchmark: orbits the camera for `ms` and reports frame pacing.
-  // Run it while the local model is generating to see the real contention on your GPU.
+  // Run it while a local model is generating to see the real contention on your GPU.
   bench(ms = 8000) {
     this.frameTimes = []; this.intervals = []; this.benchUntil = performance.now() + ms; this.kick();
     return new Promise((res) => setTimeout(() => {
