@@ -14,7 +14,7 @@
 param(
   [string]$Source = '',
   [string]$Install = (Join-Path $env:USERPROFILE '.gemini\antigravity\scratch\ccarf-v2'),
-  [string[]]$Models = @('gemini-3-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash'),
+  [string[]]$Models = @('gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-3-flash', 'gemini-2.5-flash'),
   [string]$LocalModel = 'gemma4:e4b'
 )
 $ErrorActionPreference = 'Continue'

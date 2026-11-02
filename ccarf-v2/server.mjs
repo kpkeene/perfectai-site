@@ -24,7 +24,7 @@ const VERTEX_BASE = (process.env.VERTEX_BASE || 'https://aiplatform.googleapis.c
 const VERTEX_KEY_FILE = process.env.VERTEX_KEY_FILE || '';
 function readSecretFile(f) { try { return f ? fs.readFileSync(f, 'utf8').trim() : ''; } catch { return ''; } }
 const VERTEX_KEY = process.env.VERTEX_KEY || readSecretFile(VERTEX_KEY_FILE);
-const VERTEX_MODEL = process.env.VERTEX_MODEL || readSecretFile(VERTEX_KEY_FILE && VERTEX_KEY_FILE.replace(/\.key$/, '.model')) || 'gemini-3-flash';
+const VERTEX_MODEL = process.env.VERTEX_MODEL || readSecretFile(VERTEX_KEY_FILE && VERTEX_KEY_FILE.replace(/\.key$/, '.model')) || 'gemini-3.8-flash';
 const IS_VERTEX = PROVIDER === 'vertex';
 const MODEL_BASE = IS_VERTEX ? 'vertex' : (process.env.MODEL_BASE || '').replace(/\/$/, '');
 const MODEL_NAME = IS_VERTEX ? VERTEX_MODEL : process.env.MODEL_NAME || 'local-model';

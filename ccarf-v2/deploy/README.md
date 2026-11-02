@@ -26,7 +26,7 @@ Rollback: `.\deploy\install.ps1 -Uninstall`, remove the Caddy block, reload Cadd
 ## Using Gemini on Vertex AI instead of the local model
 
 1. Get a Vertex AI **express mode** API key (Google Cloud console, signed in with the Google account you want billed or on the free express quota).
-2. Run `deploy\switch-to-vertex.cmd`. It asks for the key with hidden input, tests `gemini-3-flash`, `gemini-3-flash-preview` and `gemini-2.5-flash` in that order, stores the key in `%USERPROFILE%\.ccarf2\vertex.key` (outside the site folder; never served or logged), backs up `run.cmd` to `run.local.cmd`, writes a Vertex `run.cmd`, restarts only the studio, and asks Ollama to unload `gemma4:e4b`.
+2. Run `deploy\switch-to-vertex.cmd`. It asks for the key with hidden input, tests `gemini-3.8-flash`, `gemini-3.5-flash-lite`, `gemini-3-flash` and `gemini-2.5-flash` in that order, stores the key in `%USERPROFILE%\.ccarf2\vertex.key` (outside the site folder; never served or logged), backs up `run.cmd` to `run.local.cmd`, writes a Vertex `run.cmd`, restarts only the studio, and asks Ollama to unload `gemma4:e4b`.
 3. To go back: `deploy\switch-to-local.cmd`.
 
 Server settings for Vertex: `MODEL_PROVIDER=vertex`, `VERTEX_KEY_FILE` (or `VERTEX_KEY`), `VERTEX_MODEL` (default read from `vertex.model` next to the key, else `gemini-3-flash`), `MAX_TOKENS` (default 4096), `CONCURRENCY` (default 4), `VERTEX_BASE` (for tests). The adapter calls `https://aiplatform.googleapis.com/v1/publishers/google/models/{model}:streamGenerateContent?alt=sse` with the key in the `x-goog-api-key` header. Thought parts are dropped; `MAX_TOKENS` finish shows the Continue button; safety blocks and 401/403/404/429 become plain error messages.
