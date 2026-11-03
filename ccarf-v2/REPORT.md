@@ -93,6 +93,13 @@ Requested: "the AI tutor as an AI-first website for the entire site". Implemente
 - Tested against `tests/fake-vertex.mjs` (checks header auth, no key in URL, request shape, thought filtering, truncation, wrong key, 3 concurrent streams without queueing) and the full browser suites on both providers.
 - `deploy/switch-to-vertex.cmd` / `switch-to-local.cmd` for the PC.
 
+## Live on Vertex AI (2026-11-02, 19:01)
+
+- kpkeene2@gmail.com, project "My First Project" (free trial, $300 credit, ends 2027-02-01). Org policy `iam.managed.disableServiceAccountApiKeyCreation` set to Not enforced for this project only (done by Kumaran). API key restricted to the Agent Platform (Vertex AI) API.
+- `ccarf2-vertex.cmd` log: gemini-3.8-flash → HTTP 200; key saved under %USERPROFILE%\.ccarf2; run.cmd backed up to run.local.cmd; studio node restarted; Ollama reports no models loaded afterwards.
+- Live checks: /api/health → v2.2.0, provider vertex, keyLoaded; real answer 2.6k chars in 15 s (first text 8 s), accurate tool_result explanation; tutor hint (no letter revealed) 15 s and follow-up 23 s; footer and Settings privacy text correct; no page errors.
+- Rollback: Demo\ccarf2-switch-to-local.ps1 (restores run.local.cmd).
+
 ## Not done
 
 No model comparison (4B vs 8B), no checkpoint-lineage check, no training. Rated answers now accumulate in `data/feedback.jsonl` as reviewable candidates for a future, properly licensed fine-tuning run.
